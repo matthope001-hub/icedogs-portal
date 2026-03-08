@@ -1,13 +1,2933 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base target="_top">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="IceDogs Portal">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#C8102E">
   <style>
-    * { margin:0; padding:0; }
-    iframe { width:100%; height:100vh; border:none; display:block; }
+    :root { 
+      --icedogs-red: #C8102E; --icedogs-black: #000000; --ios-bg: #F8F8F8; 
+      --ios-card: #FFFFFF; --ios-green: #34C759; --ios-sep: #E5E5E5; --ios-text: #1C1C1E;
+      --std-logo-size: 40px;
+      --icon-muted: #64748b;
+      --icon-action: #475569;
+      --icon-danger: #94a3b8;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif; background-color: var(--ios-bg); color: var(--ios-text); margin: 0; padding: 0; }
+    
+    #iosToast { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; background: white; border-radius: 12px; padding: 16px; display: flex; align-items: center; box-shadow: 0 12px 30px rgba(0,0,0,0.15); z-index: 9999; transition: 0.5s; border-left: 6px solid var(--icedogs-red); }
+    #iosToast.show { top: 20px; }
+
+    #userStatusBar { display: none; background: var(--icedogs-black); border-bottom: 2px solid var(--icedogs-red); padding: 12px 20px; position: sticky; top: 0; z-index: 1000; color: white; justify-content: space-between; align-items: center; }
+    .main-container { padding: 16px; max-width: 450px; margin: 0 auto; }
+    .card { background: var(--ios-card); border-radius: 14px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid var(--ios-sep); }
+
+    .list-item { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--ios-sep); background: white; gap: 12px; }
+    .list-item:last-child { border-bottom: none; }
+    .game-main-info { display: flex; align-items: center; flex: 1; min-width: 0; }
+    .game-text-content { flex: 1; display: flex; flex-direction: column; }
+
+    .team-logo { width: var(--std-logo-size); height: var(--std-logo-size); object-fit: contain; flex-shrink: 0; }
+    .main-portal-logo { width: 70px; height: auto; display: block; margin: 0 auto 15px auto; }
+
+    .btn-primary { background: var(--icedogs-red); color: white; border: none; width: 100%; height: 52px; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; text-transform: uppercase; }
+    
+    .btn-icon { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+    .btn-icon:hover { background: #e2e8f0; }
+    .btn-icon svg { width: 18px; height: 18px; }
+    .icon-blue { stroke: #475569; }
+    .icon-red { stroke: #C8102E; }
+    
+    .btn-secondary { color: white; border: none; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+    input, select, textarea { width: 100%; height: 52px; background: white; border: 2px solid var(--ios-sep); padding: 0 16px; border-radius: 12px; font-size: 16px; margin-bottom: 12px; font-family: inherit; }
+    textarea { height: 80px; padding: 12px 16px; }
+
+    .segmented-control { display: flex; background: #E0E0E0; padding: 4px; border-radius: 14px; margin-bottom: 24px; }
+    .seg-btn { flex: 1; border: none; background: none; padding: 10px 0; font-size: 11px; font-weight: 800; border-radius: 10px; color: #666; cursor: pointer; }
+    .seg-btn.active { background: var(--icedogs-red); color: white; }
+
+    .switch { position: relative; display: inline-block; width: 50px; height: 28px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #D1D1D1; transition: .3s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--ios-green); }
+    input:checked + .slider:before { transform: translateX(22px); }
+
+    .badge-new { background-color: var(--icedogs-red); color: white; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 4px; margin-left: 8px; text-transform: uppercase; display: inline-block; vertical-align: middle; animation: pulse 2.5s infinite; }
+    @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.05); } 100% { opacity: 1; transform: scale(1); } }
+
+    .promo-badge { background: var(--icedogs-red); color: white; font-size: 9px; font-weight: 900; padding: 3px 8px; border-radius: 4px; display: inline-block; margin-top: 6px; text-transform: uppercase; line-height: 1.2; }
+    .notes-alert { font-size: 10px; color: #d97706; font-weight: 700; margin-top: 6px; font-style: italic; border-top: 1px dashed #ddd; padding-top: 4px; }
+    .type-tag { font-size: 10px; font-weight: 900; color: var(--icedogs-red); margin-right: 5px; }
+    .game-num { font-size: 10px; color: #999; font-weight: 700; margin-bottom: 2px; }
+
+    #timerCont { background: #fff1f2; border: 1px solid #fecaca; border-radius: 8px; padding: 8px; margin-top: 10px; text-align: center; min-height: 50px; display: flex; flex-direction: column; justify-content: center; }
+    .timer-header { font-weight: 900; font-size: 9px; color: var(--icedogs-red); margin-bottom: 4px; letter-spacing: 0.5px; }
+    .timer-grid { display: flex; justify-content: center; align-items: center; gap: 4px; }
+    .timer-slot { display: flex; flex-direction: column; align-items: center; min-width: 35px; }
+    .timer-val { font-size: 18px; font-weight: 900; color: var(--icedogs-black); line-height: 1; }
+    .timer-sep { font-size: 16px; font-weight: 900; color: #cbd5e1; }
+    .timer-label { font-size: 7px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-top: 2px; }
+    
+    .live-badge { display: inline-flex; align-items: center; justify-content: center; gap: 5px; background: var(--icedogs-red); color: white; font-size: 11px; font-weight: 900; padding: 6px 12px; border-radius: 20px; align-self: center; animation: live-pulse 1.5s infinite; }
+    @keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(200, 16, 46, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(200, 16, 46, 0); } 100% { box-shadow: 0 0 0 0 rgba(200, 16, 46, 0); } }
+
+    .matrix-game-card { border-left: 5px solid var(--icedogs-red); margin-bottom: 10px; background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden; }
+    .matrix-header { padding: 12px; background: #fff; cursor: pointer; display: flex; align-items: center; gap: 12px; }
+    .matrix-content { padding: 0 12px 12px 12px; display: none; }
+    .matrix-content.expanded { display: block; }
+    .matrix-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; }
+    .matrix-pos { font-size: 11px; font-weight: 700; color: #555; width: 40%; }
+    .matrix-select { width: 55%; height: 35px; font-size: 12px; margin-bottom: 0; border: 1px solid #ddd; padding: 0 5px; }
+
+    .spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 0.8s linear infinite; display: none; margin: 0 auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* -- Global saving overlay -- */
+    #savingOverlay {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.82);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      z-index: 99999;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      white-space: nowrap;
+    }
+    #savingOverlay.visible { display: flex; }
+    .saving-ring {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    .saving-done-check {
+      width: 16px; height: 16px;
+      display: none;
+      flex-shrink: 0;
+    }
+
+    /* Inline spinner next to matrix dropdowns while saving */
+    .matrix-row { position: relative; }
+    .row-saving-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--icedogs-red);
+      opacity: 0;
+      flex-shrink: 0;
+      transition: opacity 0.2s;
+      animation: row-pulse 0.8s ease-in-out infinite;
+    }
+    .row-saving-dot.active { opacity: 1; }
+    @keyframes row-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.4); } }
+
+    #toggleGameBtn, #toggleOfficialBtn, #toggleTeamBtn { margin-bottom: 15px; background: #333; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 900; border:none; border-radius: 12px; color:white; width:100%; cursor:pointer; text-transform:uppercase; }
+    .official-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
+    .official-info { flex: 1; padding-right: 10px; }
+    .official-name { font-weight: 700; font-size: 14px; }
+    .official-role-tag { font-size: 11px; color: #666; }
+    .item-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
+    .empty-state { padding: 30px; text-align: center; color: #888; font-style: italic; font-size: 14px; background: #fdfdfd; }
+
+    /* -- Game Edit Modal -- */
+    #gameModal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65); z-index: 10000;
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    #gameModal.open { display: flex; }
+    #gameModalBox {
+      background: white; border-radius: 20px; width: 100%;
+      max-width: 420px; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: modalSlideIn 0.3s ease;
+    }
+
+    /* -- Edit Official Modal -- */
+    #editOfficialModal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65); z-index: 10000;
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    #editOfficialModal.open { display: flex; }
+    #editOfficialBox {
+      background: white; border-radius: 20px; width: 100%;
+      max-width: 420px; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: modalSlideIn 0.3s ease;
+    }
+
+    /* -- Confirm Dialog Modal -- */
+    #confirmModal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65); z-index: 10001;
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    #confirmModal.open { display: flex; }
+    #confirmBox {
+      background: white; border-radius: 20px; width: 100%;
+      max-width: 340px; padding: 28px 24px; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: modalSlideIn 0.3s ease;
+    }
+    #confirmBox .confirm-icon { font-size: 36px; margin-bottom: 10px; }
+    #confirmBox .confirm-title { font-size: 17px; font-weight: 900; margin-bottom: 8px; }
+    #confirmBox .confirm-msg { font-size: 13px; color: #666; margin-bottom: 22px; line-height: 1.5; }
+    #confirmBox .confirm-actions { display: flex; gap: 10px; }
+    #confirmBox .confirm-actions button { flex: 1; height: 48px; border-radius: 12px; font-size: 14px; font-weight: 800; border: none; cursor: pointer; }
+    #confirmBox .btn-cancel { background: #f1f5f9; color: #475569; }
+    #confirmBox .btn-danger { background: var(--icedogs-red); color: white; }
+    #profileModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    #profileModal.open { display: flex; }
+    #profileModalBox {
+      background: white;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 420px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: modalSlideIn 0.3s ease;
+    }
+    @keyframes modalSlideIn {
+      from { opacity: 0; transform: translateY(30px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .modal-header {
+      background: var(--icedogs-red);
+      color: white;
+      padding: 20px;
+      border-radius: 20px 20px 0 0;
+      text-align: center;
+    }
+    .modal-header h2 { margin: 0; font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
+    .modal-header p  { margin: 6px 0 0; font-size: 12px; opacity: 0.85; }
+    .modal-body { padding: 20px; }
+    .modal-field { margin-bottom: 14px; }
+    .modal-field label { display: block; font-size: 11px; font-weight: 800; color: #555; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .modal-field input,
+    .modal-field select {
+      width: 100%; height: 50px; border: 2px solid var(--ios-sep);
+      border-radius: 12px; padding: 0 14px; font-size: 15px;
+      font-family: inherit; background: white; margin-bottom: 0;
+      transition: border-color 0.2s;
+    }
+    .modal-field input:focus,
+    .modal-field select:focus { outline: none; border-color: var(--icedogs-red); }
+    .modal-field.error input,
+    .modal-field.error select { border-color: #ef4444; background: #fff5f5; }
+    .modal-field .field-error { font-size: 11px; color: #ef4444; font-weight: 700; margin-top: 4px; display: none; }
+    .modal-field.error .field-error { display: block; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      15%      { transform: translateX(-8px); }
+      30%      { transform: translateX(8px); }
+      45%      { transform: translateX(-6px); }
+      60%      { transform: translateX(6px); }
+      75%      { transform: translateX(-3px); }
+      90%      { transform: translateX(3px); }
+    }
+    .modal-field.shake input,
+    .modal-field.shake select { animation: shake 0.45s ease; }
+
+    /* Confirmation screen inside modal */
+    #profileConfirm { display: none; }
+    #profileConfirm .confirm-row {
+      display: flex; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--ios-sep);
+      font-size: 14px;
+    }
+    #profileConfirm .confirm-row:last-child { border-bottom: none; }
+    #profileConfirm .confirm-label { font-weight: 700; color: #888; font-size: 12px; }
+    #profileConfirm .confirm-val { font-weight: 600; text-align: right; max-width: 60%; }
   </style>
 </head>
 <body>
-  <iframe src="https://script.google.com/macros/s/AKfycbwaTRUEmRVQ4P5zUpOccWkmQa_1V4yM7DxwSCjfRo73ht2mrpYW-oH8gt38L5mmLfaj9A/exec"></iframe>
+
+<div id="iosToast"><span id="toastMsg"></span></div>
+
+<!-- Global saving indicator -->
+<div id="savingOverlay">
+  <div class="saving-ring" id="savingRing"></div>
+  <svg class="saving-done-check" id="savingCheck" viewBox="0 0 16 16" fill="none">
+    <circle cx="8" cy="8" r="7" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
+    <polyline points="4,8 7,11 12,5" stroke="#34C759" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <span id="savingText">Saving...</span>
+</div>
+
+<div id="userStatusBar">
+  <div>🏒 <span id="barUserName">Guest</span></div>
+  <div id="teamNameLabel" style="font-size:10px; font-weight:900; color:var(--icedogs-red);">NIAGARA ICEDOGS</div>
+  <button onclick="goHome()" style="background:none; border:1px solid #444; border-radius:20px; color:#ccc; font-size:10px; font-weight:800; padding:4px 10px; cursor:pointer; white-space:nowrap;">Sign Out</button>
+</div>
+
+<div class="main-container">
+  
+  <div id="loginSection">
+    <div class="card">
+      <div id="loginLogoCont"></div>
+      <div style="font-size: 18px; font-weight: 900; margin-bottom: 20px; text-align:center; color: var(--icedogs-black); text-transform: uppercase; letter-spacing: 0.5px;">
+        Off-Ice Officials Portal
+      </div>
+
+      <select id="userPicker" onchange="handleUserSelect()">
+        <option value="">Select Your Name...</option>
+      </select>
+      
+      <div id="pinArea" style="display:none; margin-top:10px;">
+         <input type="password" id="userPin" placeholder="PIN" inputmode="numeric" maxlength="4" style="text-align:center;">
+         <button id="loginBtn" class="btn-primary" onclick="attemptLogin()">
+           <div class="spinner" id="loginSpin"></div>
+           <span id="loginText">Login</span>
+         </button>
+      </div>
+    </div>
+
+    <div class="card" style="border-top: 4px solid var(--icedogs-red); padding: 0; overflow: hidden;">
+      <div style="font-weight: 900; font-size: 14px; padding: 15px; text-align: center; border-bottom: 1px solid var(--ios-sep);">UPCOMING HOME GAMES</div>
+      <div id="publicGamesList"></div>
+    </div>
+  </div>
+
+  <div id="app" style="display:none;">
+    <div id="appLogoCont"></div>
+    <div class="segmented-control">
+      <button id="tabAvail" class="seg-btn active" onclick="switchView('avail')">Availability</button>
+      <button id="tabMyGames" class="seg-btn" onclick="switchView('myGames')">My Games</button>
+      <button id="tabEditor" class="seg-btn" style="display:none;" onclick="switchView('editor')">Scheduling</button>
+      <button id="tabProfile" class="seg-btn" onclick="switchView('profile')">Profile</button>
+      <button id="tabAdmin" class="seg-btn" style="display:none;" onclick="switchView('admin')">Admin</button>
+    </div>
+    
+    <div id="viewAvail">
+      <div id="submissionDashboard" class="card" style="padding: 15px; background: #fff; border: 2px solid var(--icedogs-red);">
+        <div style="font-weight: 900; font-size: 14px; margin-bottom: 10px; text-align: center; color: var(--icedogs-red);">SUBMISSION STATUS</div>
+        <div id="dashboardList"></div>
+      </div>
+      <select id="mSelect" onchange="loadGames()"></select>
+      <div id="gList" class="card" style="padding:0; overflow:hidden;"></div>
+      <button id="saveBtn" class="btn-primary" style="display:none; margin-top: 20px;" onclick="saveAvail()">Submit Schedule</button>
+    </div>
+
+    <div id="viewMyGames" style="display:none;">
+      <div id="myGamesList"></div>
+    </div>
+
+    <div id="viewEditor" style="display:none;">
+      <div class="card" style="padding:14px 16px; background:#f0f4ff; border:2px solid #c7d4f5; margin-bottom:0;">
+        <div style="font-weight:900; font-size:13px; color:#1e3a8a;" id="editorPositionLabel">VIDEO REPLAY SCHEDULING</div>
+        <div style="font-size:12px; color:#374151; margin-top:4px;">Select a month to manage your position assignments.</div>
+      </div>
+      <select id="editorMonthSelect" onchange="loadEditorMatrix()" style="margin-top:10px;"></select>
+      <div id="editorGamesList"></div>
+    </div>
+
+    <div id="viewProfile" style="display:none;">
+      <!-- Read-only state (profile already completed) -->
+      <div id="profileReadOnly" class="card" style="display:none;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+          <div style="width:40px; height:40px; border-radius:50%; background:var(--icedogs-red); color:white; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:16px; flex-shrink:0;" id="profileInitial">?</div>
+          <div>
+            <div style="font-weight:900; font-size:15px;" id="profileReadName"></div>
+            <div style="font-size:11px; color:#888;">Profile on file</div>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:0; border-radius:12px; overflow:hidden; border:1px solid var(--ios-sep); margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; padding:11px 14px; border-bottom:1px solid var(--ios-sep); background:white;">
+            <span style="font-size:11px; font-weight:800; color:#888; text-transform:uppercase;">Email</span>
+            <span style="font-size:13px; font-weight:700; color:var(--ios-text);" id="roEmail">--</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:11px 14px; border-bottom:1px solid var(--ios-sep); background:white;">
+            <span style="font-size:11px; font-weight:800; color:#888; text-transform:uppercase;">Phone</span>
+            <span style="font-size:13px; font-weight:700; color:var(--ios-text);" id="roPhone">--</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:11px 14px; border-bottom:1px solid var(--ios-sep); background:white;">
+            <span style="font-size:11px; font-weight:800; color:#888; text-transform:uppercase;">Address</span>
+            <span style="font-size:13px; font-weight:700; color:var(--ios-text); text-align:right; max-width:60%;" id="roAddress">--</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:11px 14px; background:white;">
+            <span style="font-size:11px; font-weight:800; color:#888; text-transform:uppercase;">Pass Pref</span>
+            <span style="font-size:13px; font-weight:700; color:var(--ios-text);" id="roPass">--</span>
+          </div>
+        </div>
+        <div style="background:#fff8e1; border:1px solid #ffe082; border-radius:12px; padding:14px 16px; margin-bottom:14px;">
+          <div style="font-weight:900; font-size:12px; color:#b45309; margin-bottom:4px;">🔒 PROFILE LOCKED</div>
+          <div style="font-size:12px; color:#92400e; line-height:1.5;">To update your information, please contact an admin below.</div>
+        </div>
+        <div id="profileAdminList" style="display:flex; flex-direction:column; gap:0; border-radius:12px; overflow:hidden; border:1px solid var(--ios-sep);"></div>
+      </div>
+
+      <!-- Editable state (first-time or incomplete) -->
+      <div id="profileEditable" class="card" style="display:none;">
+        <div style="font-weight: 900; margin-bottom: 15px;">MY INFORMATION</div>
+        <label style="font-size: 12px; font-weight: 700;">EMAIL</label>
+        <input type="email" id="pEmail">
+        <label style="font-size: 12px; font-weight: 700;">PHONE</label>
+        <input type="tel" id="pPhone">
+        <label style="font-size: 12px; font-weight: 700;">ADDRESS</label>
+        <input type="text" id="pAddress">
+        <label style="font-size: 12px; font-weight: 700;">PASS PREFERENCE</label>
+        <select id="pPass"><option value="Digital">Digital</option><option value="Physical">Physical</option></select>
+        <button class="btn-primary" onclick="saveProfile()">Update Profile</button>
+      </div>
+    </div>
+
+    <div id="viewAdmin" style="display:none;">
+        <div class="segmented-control" style="background:#f0f0f0;">
+          <button id="subTabMatrix" class="seg-btn active" onclick="switchAdminTab('matrix')">Scheduling</button>
+          <button id="subTabGames" class="seg-btn" onclick="switchAdminTab('games')">Games</button>
+          <button id="subTabAvail" class="seg-btn" onclick="switchAdminTab('avail')">Avail</button>
+          <button id="subTabOfficial" class="seg-btn" onclick="switchAdminTab('official')">Officials</button>
+          <button id="subTabTeams" class="seg-btn" onclick="switchAdminTab('teams')">Teams</button>
+          <button id="subTabSettings" class="seg-btn" onclick="switchAdminTab('settings')">Settings</button>
+        </div>
+
+        <div id="adminMatrixSection">
+          <select id="adminMonthSelect" onchange="loadAdminMatrix()"></select>
+          <div id="matrixCont"></div>
+        </div>
+
+        <div id="adminGamesSection" style="display:none;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+            <button id="toggleGameBtn" class="btn-primary" onclick="openGameModal()" style="flex:1;">
+              <span>➕</span> Add New Game
+            </button>
+            <button onclick="importOHLSchedule()" style="flex:1; height:42px; background:#1e3a8a; border:none; border-radius:10px; color:white; font-size:13px; font-weight:800; cursor:pointer;">
+              🏒 Import OHL Schedule
+            </button>
+            <button onclick="runPromoImport()" style="flex:1; height:42px; background:#7c3aed; border:none; border-radius:10px; color:white; font-size:13px; font-weight:800; cursor:pointer;">
+              🎉 Import Promos
+            </button>
+          </div>
+          <div id="importSeasonRow" style="display:none; background:#f0f4ff; border:1px solid #c7d4f5; border-radius:8px; padding:10px 12px; margin-bottom:8px;">
+            <div style="font-size:11px; font-weight:800; color:#1e3a8a; margin-bottom:6px;">SEASON ID (leave blank for current season)</div>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="importSeasonId" placeholder="e.g. 83" style="flex:1; height:36px;">
+              <button onclick="runOHLImport()" style="height:36px; padding:0 16px; background:#1e3a8a; border:none; border-radius:8px; color:white; font-size:12px; font-weight:800; cursor:pointer;">Import</button>
+              <button onclick="document.getElementById('importSeasonRow').style.display='none'" style="height:36px; padding:0 12px; background:#eee; border:none; border-radius:8px; font-size:12px; cursor:pointer;">Cancel</button>
+            </div>
+          </div>
+          <div id="adminGamesListCont"></div>
+        </div>
+
+        <div id="adminAvailSection" style="display:none;">
+          <!-- Overview card -->
+          <div id="availOverviewCard" class="card" style="padding:0; overflow:hidden; margin-bottom:14px;">
+            <div style="padding:14px 16px; background:#f8f9fa; border-bottom:1px solid var(--ios-sep); display:flex; align-items:center; gap:8px;">
+              <div style="width:4px; height:18px; background:var(--icedogs-red); border-radius:2px;"></div>
+              <span style="font-weight:900; font-size:13px; text-transform:uppercase; letter-spacing:0.5px;">Submission Overview</span>
+            </div>
+            <div id="availOverviewTable" style="overflow-x:auto;">
+              <div class="empty-state">Loading...</div>
+            </div>
+          </div>
+
+          <!-- Edit panel -->
+          <div class="card">
+            <div style="font-weight:900; font-size:13px; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">✏️ Edit Official Availability</div>
+            <label style="font-size:11px; font-weight:800; color:#888; text-transform:uppercase;">Official</label>
+            <select id="adminAvailOfficial" onchange="adminLoadAvailMonths()" style="margin-bottom:10px;">
+              <option value="">-- Select Official --</option>
+            </select>
+            <label style="font-size:11px; font-weight:800; color:#888; text-transform:uppercase;">Month</label>
+            <select id="adminAvailMonth" onchange="adminLoadAvailGames()" style="margin-bottom:10px;">
+              <option value="">-- Select Month --</option>
+            </select>
+            <div id="adminAvailGameList"></div>
+            <button id="adminAvailSaveBtn" class="btn-primary" style="display:none; margin-top:14px;" onclick="adminSaveAvail()">Save Changes</button>
+          </div>
+        </div>
+
+        <div id="adminOfficialSection" style="display:none;">
+          <button id="toggleOfficialBtn" class="btn-primary" onclick="toggleOfficialForm()">
+            <span id="toggleOfficialIcon">➕</span> <span id="toggleOfficialText">Add Official</span>
+          </button>
+          <div id="addOfficialForm" class="card" style="display:none;">
+            <div id="offFormTitle" style="font-weight:900; margin-bottom:10px;">OFFICIAL DETAILS</div>
+            <input type="text" id="noName" placeholder="Full Name">
+            <input type="email" id="noEmail" placeholder="Email Address">
+            <input type="tel" id="noPhone" placeholder="Phone (PIN)">
+            <select id="noRole"><option value="Official">Official</option><option value="Admin">Admin</option></select>
+            <button id="offSubmitBtn" class="btn-primary" onclick="addOfficial()">Save Official</button>
+            <button class="btn-secondary" style="margin-top:10px; width:100%; background:#555;" onclick="toggleOfficialForm()">Cancel</button>
+          </div>
+          <div id="officialListCont" class="card" style="padding:0; overflow:hidden;"></div>
+        </div>
+
+        <div id="adminTeamsSection" style="display:none;">
+          <button id="toggleTeamBtn" class="btn-primary" onclick="toggleTeamForm()">
+            <span id="toggleTeamIcon">➕</span> <span id="toggleTeamText">Add New OHL Team</span>
+          </button>
+          <div id="addTeamForm" class="card" style="display:none;">
+            <div style="font-weight:900; margin-bottom:10px;">TEAM DETAILS</div>
+            <input type="text" id="ntName" placeholder="Team First Name (e.g. Windsor)">
+            <button class="btn-primary" onclick="addNewTeam()">Save Team</button>
+            <button class="btn-secondary" style="margin-top:10px; width:100%; background:#555;" onclick="toggleTeamForm()">Cancel</button>
+          </div>
+          <div id="teamsListCont" class="card" style="padding:0; overflow:hidden;"></div>
+        </div>
+
+        <div id="adminSettingsSection" style="display:none;">
+          <div class="card" style="border:2px solid #fecaca;">
+            <div style="font-weight:900; font-size:15px; margin-bottom:6px; color:#991b1b;">⚠️ SEASON RESET</div>
+            <p style="font-size:12px; color:#666; margin:0 0 14px 0;">Clears all games, assignments, availability submissions and schedule locks to prepare for a new season. Officials, teams and settings are preserved. <strong>This cannot be undone.</strong></p>
+            <div style="background:#fff1f2; border:1px solid #fecaca; border-radius:8px; padding:10px 12px; margin-bottom:14px;">
+              <div style="font-size:11px; font-weight:700; color:#991b1b; margin-bottom:4px;">WHAT WILL BE CLEARED</div>
+              <div style="font-size:12px; color:#7f1d1d; line-height:1.7;">
+                ✗ All scheduled games<br>
+                ✗ All position assignments<br>
+                ✗ All availability submissions<br>
+                ✗ All schedule lock statuses<br>
+                ✗ All month availability windows (reset to Hidden)
+              </div>
+            </div>
+            <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:10px 12px; margin-bottom:14px;">
+              <div style="font-size:11px; font-weight:700; color:#166534; margin-bottom:4px;">WHAT WILL BE KEPT</div>
+              <div style="font-size:12px; color:#14532d; line-height:1.7;">
+                ✓ Officials list &amp; profiles<br>
+                ✓ Teams list<br>
+                ✓ Position settings &amp; role restrictions<br>
+                ✓ Security / PIN settings<br>
+                ✓ Access logs
+              </div>
+            </div>
+            <button onclick="confirmSeasonReset()" style="width:100%; height:42px; background:#dc2626; border:none; border-radius:10px; color:white; font-size:13px; font-weight:900; cursor:pointer; letter-spacing:0.3px;">🔄 Reset for New Season</button>
+          </div>
+
+          <div class="card">
+            <div style="font-weight:900; font-size:15px; margin-bottom:6px;">🔐 SECURITY</div>
+            <p style="font-size:12px; color:#666; margin:0 0 18px 0;">When enabled, users must enter the last 4 digits of their phone number to log in. Applies to all users including admins.</p>
+
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:14px; background:#f8f9fa; border-radius:10px; border:1px solid var(--ios-sep);">
+              <div>
+                <div style="font-weight:800; font-size:14px;">Require PIN on Login</div>
+                <div id="pinStatusLabel" style="font-size:11px; color:#888; margin-top:2px;">Loading...</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="pinToggle" onchange="updatePinRequirement(this.checked)">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div style="margin-top:16px; padding:12px; background:#fff8e1; border-radius:10px; border:1px solid #ffe082;">
+              <div style="font-size:11px; font-weight:700; color:#b45309; margin-bottom:4px;">📌 HOW PINS WORK</div>
+              <div style="font-size:11px; color:#92400e; line-height:1.5;">Each official's PIN is the last 4 digits of their phone number on file. Make sure all officials have a phone number saved in their profile before enabling this.</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="font-weight:900; font-size:15px; margin-bottom:6px;">📨 INVITE TO PORTAL</div>
+            <p style="font-size:12px; color:#666; margin:0 0 14px 0;">Send a portal invite email to an existing official or any email address.</p>
+
+            <div style="margin-bottom:12px;">
+              <div style="font-size:11px; font-weight:800; color:#888; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:6px;">Select an Official</div>
+              <select id="inviteOfficialSelect" onchange="onInviteOfficialChange()" style="width:100%;">
+                <option value="">-- Pick an official --</option>
+              </select>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+              <div style="flex:1; height:1px; background:#eee;"></div>
+              <div style="font-size:11px; font-weight:700; color:#aaa;">OR</div>
+              <div style="flex:1; height:1px; background:#eee;"></div>
+            </div>
+
+            <div style="margin-bottom:14px;">
+              <div style="font-size:11px; font-weight:800; color:#888; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:6px;">Enter Email Address</div>
+              <input type="email" id="inviteEmailInput" placeholder="email@example.com" oninput="onInviteEmailInput()" style="width:100%;">
+            </div>
+
+            <div id="invitePreview" style="display:none; background:#f0f4ff; border:1px solid #c7d4f5; border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:12px; color:#374151;">
+              <span style="font-weight:700; color:#1e3a8a;">To: </span><span id="invitePreviewTo"></span>
+            </div>
+
+            <button class="btn-primary" onclick="sendInvite()" id="sendInviteBtn" disabled style="opacity:0.5;">Send Invite</button>
+          </div>
+
+          <div class="card">
+            <div style="font-weight:900; font-size:15px; margin-bottom:6px;">📅 AVAILABILITY WINDOWS</div>
+            <p style="font-size:12px; color:#666; margin:0 0 14px 0;">Toggle which months officials can submit their availability for. Turning a month OFF locks it -- officials can still see their submission but cannot change it.</p>
+            <div id="monthToggleList"><div class="empty-state">Loading months...</div></div>
+            <div id="monthDebugOut" style="display:none; margin-top:12px; background:#1e1e1e; color:#0f0; border-radius:8px; padding:12px; font-size:10px; font-family:monospace; white-space:pre-wrap; overflow-x:auto;"></div>
+            <button onclick="runMonthDebug()" style="margin-top:10px; width:100%; height:38px; background:#333; border:none; border-radius:8px; color:white; font-size:11px; font-weight:700; cursor:pointer;">🔍 Debug Month Data</button>
+          </div>
+        </div>
+  </div>
+</div>
+
+<!-- -- Profile Completion Modal -- -->
+<div id="profileModal">
+  <div id="profileModalBox">
+    <div class="modal-header">
+      <div style="font-size:28px; margin-bottom:6px;">👤</div>
+      <h2>Complete Your Profile</h2>
+      <p>Please fill in all fields before continuing.<br>Your phone number will be used as your login PIN.</p>
+    </div>
+
+    <!-- Step 1: Form -->
+    <div id="profileForm" class="modal-body">
+      <div class="modal-field" id="mfEmail">
+        <label>Email Address</label>
+        <input type="email" id="mpEmail" placeholder="you@example.com" autocomplete="email">
+        <div class="field-error">Please enter a valid email address.</div>
+      </div>
+      <div class="modal-field" id="mfPhone">
+        <label>Phone Number</label>
+        <input type="tel" id="mpPhone" placeholder="(___) ___-____" inputmode="numeric" maxlength="14" oninput="formatModalPhone(this)">
+        <div class="field-error">Please enter a valid 10-digit phone number.</div>
+      </div>
+      <div class="modal-field" id="mfAddress">
+        <label>Mailing Address</label>
+        <input type="text" id="mpAddress" placeholder="123 Main St, City, Province">
+        <div class="field-error">Please enter your mailing address.</div>
+      </div>
+      <div class="modal-field" id="mfPass">
+        <label>Pass Preference</label>
+        <select id="mpPass">
+          <option value="">-- Select --</option>
+          <option value="Digital">Digital</option>
+          <option value="Physical">Physical</option>
+        </select>
+        <div class="field-error">Please select a pass preference.</div>
+      </div>
+      <button class="btn-primary" style="margin-top:8px;" onclick="validateProfileModal()">Review & Confirm →</button>
+    </div>
+
+    <!-- Step 2: Confirmation -->
+    <div id="profileConfirm" class="modal-body" style="display:none;">
+      <div style="font-weight:900; font-size:14px; margin-bottom:14px; text-align:center; color:var(--icedogs-red);">✅ PLEASE CONFIRM YOUR DETAILS</div>
+      <div class="confirm-row"><span class="confirm-label">EMAIL</span><span class="confirm-val" id="confEmail"></span></div>
+      <div class="confirm-row"><span class="confirm-label">PHONE</span><span class="confirm-val" id="confPhone"></span></div>
+      <div class="confirm-row"><span class="confirm-label">ADDRESS</span><span class="confirm-val" id="confAddress"></span></div>
+      <div class="confirm-row"><span class="confirm-label">PASS PREF</span><span class="confirm-val" id="confPass"></span></div>
+      <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:10px; padding:10px 14px; margin:16px 0; font-size:11px; color:#166534; font-weight:700;">
+        🔒 Your PIN will be the last 4 digits of your phone number.
+      </div>
+      <button class="btn-primary" onclick="submitProfileModal()">Confirm & Save</button>
+      <button onclick="backToProfileForm()" style="margin-top:10px; width:100%; height:44px; background:none; border:2px solid #ddd; border-radius:12px; font-size:14px; font-weight:700; color:#555; cursor:pointer;">← Edit Details</button>
+    </div>
+  </div>
+</div>
+
+<!-- -- Game Add/Edit Modal -- -->
+<div id="gameModal">
+  <div id="gameModalBox">
+    <div class="modal-header">
+      <div style="font-size:26px; margin-bottom:6px;">🏒</div>
+      <h2 id="gameModalTitle">New Game</h2>
+      <p id="gameModalSubtitle">Fill in the game details below</p>
+    </div>
+    <div class="modal-body">
+      <div class="modal-field" id="gmfId">
+        <label>Game #</label>
+        <input type="text" id="agId" placeholder="e.g. 42">
+        <div class="field-error">Please enter a game number.</div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <div class="modal-field" style="flex:1;" id="gmfDate">
+          <label>Date</label>
+          <input type="date" id="agDate" style="margin-bottom:0;">
+          <div class="field-error">Required.</div>
+        </div>
+        <div class="modal-field" style="flex:1;" id="gmfTime">
+          <label>Time</label>
+          <input type="time" id="agTime" style="margin-bottom:0;">
+          <div class="field-error">Required.</div>
+        </div>
+      </div>
+      <div class="modal-field" id="gmfOpponent">
+        <label>Opponent</label>
+        <select id="agOpponent"><option value="">-- Select Opponent --</option></select>
+        <div class="field-error">Please select an opponent.</div>
+      </div>
+      <div class="modal-field">
+        <label>Game Type</label>
+        <select id="agType">
+          <option value="(PRE)">Pre-Season (PRE)</option>
+          <option value="(R)">Regular Season (R)</option>
+          <option value="(PL)">Playoffs (PL)</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Public Promo <span style="font-weight:400; color:#aaa;">(optional)</span></label>
+        <input type="text" id="agPromo" placeholder="e.g. Teddy Bear Toss">
+      </div>
+      <div class="modal-field">
+        <label>Admin Notes <span style="font-weight:400; color:#aaa;">(optional)</span></label>
+        <textarea id="agNotes" placeholder="Reschedule info, internal notes..." style="height:72px; padding:12px 14px; margin-bottom:0;"></textarea>
+      </div>
+      <button class="btn-primary" style="margin-top:14px;" onclick="saveGame()">Save Game</button>
+      <button onclick="closeGameModal()" style="margin-top:10px; width:100%; height:44px; background:none; border:2px solid #ddd; border-radius:12px; font-size:14px; font-weight:700; color:#555; cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="editOfficialModal">
+  <div id="editOfficialBox">
+    <div class="modal-header">
+      <div style="font-size:26px; margin-bottom:6px;">✏️</div>
+      <h2>Edit Official Profile</h2>
+      <p id="editOfficialSubtitle">Admin access only</p>
+    </div>
+    <div class="modal-body">
+      <div class="modal-field" id="eofEmail">
+        <label>Email Address</label>
+        <input type="email" id="eofEmailVal" placeholder="you@example.com">
+        <div class="field-error">Please enter a valid email address.</div>
+      </div>
+      <div class="modal-field" id="eofPhone">
+        <label>Phone Number</label>
+        <input type="tel" id="eofPhoneVal" placeholder="(___) ___-____" inputmode="numeric" maxlength="14" oninput="formatModalPhone(this)">
+        <div class="field-error">Please enter a valid 10-digit phone number.</div>
+      </div>
+      <div class="modal-field" id="eofAddress">
+        <label>Mailing Address</label>
+        <input type="text" id="eofAddressVal" placeholder="123 Main St, City, Province">
+        <div class="field-error">Please enter a mailing address.</div>
+      </div>
+      <div class="modal-field" id="eofPass">
+        <label>Pass Preference</label>
+        <select id="eofPassVal">
+          <option value="">-- Select --</option>
+          <option value="Digital">Digital</option>
+          <option value="Physical">Physical</option>
+        </select>
+        <div class="field-error">Please select a pass preference.</div>
+      </div>
+      <div class="modal-field" id="eofRole">
+        <label>Role</label>
+        <select id="eofRoleVal">
+          <option value="Official">Official</option>
+          <option value="Admin">Admin</option>
+        </select>
+      </div>
+      <button class="btn-primary" style="margin-top:8px;" onclick="saveEditOfficial()">Save Changes</button>
+      <button onclick="closeEditOfficialModal()" style="margin-top:10px; width:100%; height:44px; background:none; border:2px solid #ddd; border-radius:12px; font-size:14px; font-weight:700; color:#555; cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- -- Confirm Dialog (replaces browser confirm()) -- -->
+<div id="confirmModal">
+  <div id="confirmBox">
+    <div class="confirm-icon" id="confirmIcon">⚠️</div>
+    <div class="confirm-title" id="confirmTitle">Are you sure?</div>
+    <div class="confirm-msg" id="confirmMsg"></div>
+    <div class="confirm-actions">
+      <button class="btn-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-danger" id="confirmOkBtn" onclick="confirmOk()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let sessionUser = "";
+  let countdownTimer;
+
+  // --- Officials allowed to hold multiple roles in one game ---
+  const MULTI_ROLE_EXCEPTIONS_CLIENT = ["Wayne Briggs-Jude", "Curtis Pirson"];
+
+  // --- Cache of full matrix data keyed by gameId ---
+  // Structure: { [gameId]: { assignments: [ { colIndex, position, availablePool, currentValue } ] } }
+  let matrixGameData = {};
+
+  var iconEdit = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-blue"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
+  var iconTrash = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-red"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>';
+
+  window.onload = function() {
+    google.script.run.withSuccessHandler(renderPublicDashboard).getPublicDashboardData();
+    google.script.run.withSuccessHandler(function(list) {
+      var p = document.getElementById("userPicker");
+      list.forEach(function(name) { p.innerHTML += '<option value="' + name + '">' + name + '</option>'; });
+    }).getOfficials();
+  };
+
+  function showToast(m) { 
+    document.getElementById('toastMsg').innerText = m; 
+    document.getElementById('iosToast').classList.add('show'); 
+    setTimeout(() => document.getElementById('iosToast').classList.remove('show'), 3000); 
+  }
+
+  // -- Saving overlay helpers --
+  let savingTimer = null;
+  function showSaving(msg) {
+    if (savingTimer) clearTimeout(savingTimer);
+    const overlay = document.getElementById('savingOverlay');
+    const ring = document.getElementById('savingRing');
+    const check = document.getElementById('savingCheck');
+    const text = document.getElementById('savingText');
+    ring.style.display = 'block';
+    check.style.display = 'none';
+    text.textContent = msg || 'Saving...';
+    overlay.classList.add('visible');
+  }
+
+  function hideSaving(successMsg) {
+    const overlay = document.getElementById('savingOverlay');
+    if (successMsg === undefined) {
+      overlay.classList.remove('visible');
+      return;
+    }
+    const ring = document.getElementById('savingRing');
+    const check = document.getElementById('savingCheck');
+    const text = document.getElementById('savingText');
+    ring.style.display = 'none';
+    check.style.display = 'block';
+    text.textContent = successMsg || 'Saved!';
+    savingTimer = setTimeout(() => overlay.classList.remove('visible'), 1400);
+  }
+
+  function hideSavingError(errMsg) {
+    const overlay = document.getElementById('savingOverlay');
+    const text = document.getElementById('savingText');
+    document.getElementById('savingRing').style.display = 'none';
+    text.textContent = errMsg || 'Error';
+    savingTimer = setTimeout(() => overlay.classList.remove('visible'), 2000);
+  }
+
+  function renderPublicDashboard(data) {
+    if (data.mainLogo) {
+      document.getElementById("loginLogoCont").innerHTML = '<img src="' + data.mainLogo + '" class="main-portal-logo">';
+      document.getElementById("appLogoCont").innerHTML = '<img src="' + data.mainLogo + '" class="main-portal-logo">';
+    }
+    const cont = document.getElementById("publicGamesList");
+    if(!data.upcoming || data.upcoming.length === 0) {
+      cont.innerHTML = '<div class="empty-state">No upcoming home games.</div>';
+      return;
+    }
+    const next = data.upcoming[0];
+    const now = new Date().getTime();
+    const threeHours = 3 * 60 * 60 * 1000;
+    const isInProgress = next.isoTimestamp <= now && now - next.isoTimestamp < threeHours;
+
+    var timerHtml;
+    if (isInProgress) {
+      timerHtml = '<div id="timerCont" style="margin: 15px;">'
+        + '<div class="live-badge"><span>●</span> GAME IN PROGRESS</div>'
+        + '</div>';
+    } else {
+      timerHtml = '<div id="timerCont" style="margin: 15px;">'
+        + '<div class="timer-header">NEXT GAME IN</div>'
+        + '<div class="timer-grid">'
+        + '<div class="timer-slot"><div class="timer-val" id="t-days">00</div><div class="timer-label">Days</div></div>'
+        + '<div class="timer-sep">:</div>'
+        + '<div class="timer-slot"><div class="timer-val" id="t-hrs">00</div><div class="timer-label">Hrs</div></div>'
+        + '<div class="timer-sep">:</div>'
+        + '<div class="timer-slot"><div class="timer-val" id="t-min">00</div><div class="timer-label">Min</div></div>'
+        + '<div class="timer-sep">:</div>'
+        + '<div class="timer-slot"><div class="timer-val" id="t-sec">00</div><div class="timer-label">Sec</div></div>'
+        + '</div></div>';
+    }
+    var html = timerHtml;
+
+    data.upcoming.slice(0, 5).forEach(function(g) {
+      // Assigned staff rows
+      var assignedHtml = '';
+      if (g.roster && g.roster.length) {
+        assignedHtml = g.roster.map(function(r) {
+          return '<div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid #f0f0f0;">'
+            + '<span style="font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.3px; flex:1;">' + r.position + '</span>'
+            + '<span style="font-size:12px; font-weight:800; color:#1a1a1a; flex:1; text-align:right;">' + r.name + '</span>'
+            + '</div>';
+        }).join('');
+      } else {
+        assignedHtml = '<div style="font-size:12px; color:#aaa; font-style:italic; padding:8px 0;">No assignments yet.</div>';
+      }
+
+      // Available but NOT assigned
+      var assignedNames = new Set((g.roster || []).map(function(r) { return r.name; }));
+      var availHtml = '';
+      if (g.available && g.available.length) {
+        var unscheduled = g.available.filter(function(name) { return !assignedNames.has(name); });
+        if (unscheduled.length) {
+          availHtml = '<div style="margin-top:10px; padding-top:10px; border-top:1px solid #eee;">'
+            + '<div style="font-size:10px; font-weight:900; color:#555; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Available · Not Scheduled</div>'
+            + '<div style="display:flex; flex-wrap:wrap; gap:5px;">'
+            + unscheduled.map(function(name) {
+                return '<span style="background:#f0fdf4; border:1px solid #86efac; color:#166534; font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px;">' + name + '</span>';
+              }).join('')
+            + '</div></div>';
+        }
+      }
+
+      html += '<div class="list-item" style="flex-direction:column; align-items:stretch; padding:0;">'
+        + '<div style="display:flex; align-items:center; padding:12px 14px;">'
+        + '<img src="' + g.logo + '" class="team-logo" style="margin-right:12px;">'
+        + '<div class="game-text-content" style="flex:1;">'
+        + '<div style="font-weight:800; font-size:15px;">vs ' + g.opponent + '</div>'
+        + '<div style="font-size:11px; color:#666;">' + g.date + ' @ ' + g.time + '</div>'
+        + '<div style="margin-top:5px;">'
+        + (g.scheduleLocked
+            ? '<span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:10px; font-weight:900; padding:3px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:0.3px;">✓ Schedule Set</span>'
+            : '<span style="background:#fff1f2; border:1px solid #fecaca; color:#991b1b; font-size:10px; font-weight:900; padding:3px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:0.3px;">⏳ Scheduling In Progress</span>')
+        + '</div>'
+        + '</div>'
+        + '<button onclick="toggleRoster(\'' + g.gameId + '\')" id="rosterBtn_' + g.gameId + '" '
+        + 'style="flex-shrink:0; background:none; border:1px solid #ddd; border-radius:20px; padding:5px 12px; font-size:11px; font-weight:800; color:#555; cursor:pointer; white-space:nowrap;">Staff ▾</button>'
+        + '</div>'
+        + '<div id="roster_' + g.gameId + '" style="display:none; padding:4px 14px 12px; border-top:1px solid #f0f0f0; background:#fafafa;">'
+        + '<div style="font-size:10px; font-weight:900; color:#C8102E; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; padding-top:8px;">GAME #' + g.gameId + ' STAFF</div>'
+        + assignedHtml
+        + availHtml
+        + '</div>'
+        + '</div>';
+    });
+    cont.innerHTML = html;
+    startCountdown(next.isoTimestamp);
+  }
+
+  function toggleRoster(gameId) {
+    var panel = document.getElementById('roster_' + gameId);
+    var btn   = document.getElementById('rosterBtn_' + gameId);
+    if (!panel) return;
+    var open = panel.style.display === 'block';
+    panel.style.display = open ? 'none' : 'block';
+    btn.innerHTML = open ? 'Staff ▾' : 'Staff ▴';
+    btn.style.color = open ? '#555' : '#C8102E';
+    btn.style.borderColor = open ? '#ddd' : '#C8102E';
+  }
+
+  function startCountdown(targetTime) {
+    if (countdownTimer) clearInterval(countdownTimer);
+    const container = document.getElementById("timerCont");
+    if(!container) return;
+    function update() {
+      const now = new Date().getTime();
+      const diff = targetTime - now;
+      const threeHours = 3 * 60 * 60 * 1000;
+      if (diff <= 0 && diff > -threeHours) {
+        container.innerHTML = `<div class="live-badge"><span>●</span> GAME IN PROGRESS</div>`;
+        return;
+      }
+      if (diff <= -threeHours) {
+        clearInterval(countdownTimer);
+        google.script.run.withSuccessHandler(renderPublicDashboard).getPublicDashboardData();
+        return;
+      }
+      const d = Math.floor(diff / (1000 * 60 * 60 * 24)), h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)), m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)), s = Math.floor((diff % (1000 * 60)) / 1000);
+      const dEl = document.getElementById("t-days"), hEl = document.getElementById("t-hrs"), mEl = document.getElementById("t-min"), sEl = document.getElementById("t-sec");
+      if (dEl) dEl.innerText = d.toString().padStart(2,'0');
+      if (hEl) hEl.innerText = h.toString().padStart(2,'0');
+      if (mEl) mEl.innerText = m.toString().padStart(2,'0');
+      if (sEl) sEl.innerText = s.toString().padStart(2,'0');
+    }
+    update();
+    countdownTimer = setInterval(update, 1000);
+  }
+
+  function handleUserSelect() {
+    const user = document.getElementById("userPicker").value;
+    if (!user) return;
+
+    // Check profile completeness BEFORE showing PIN
+    google.script.run.withSuccessHandler(data => {
+      const p = data.profile;
+      const isComplete = p.email && p.phone && p.address && p.passPref &&
+                         p.phone.replace(/\D/g,'').length === 10;
+
+      if (!isComplete) {
+        // Pre-fill any existing values into the modal
+        document.getElementById("mpEmail").value   = p.email   || "";
+        document.getElementById("mpPhone").value   = p.phone   ? formatPhoneDisplay(p.phone) : "";
+        document.getElementById("mpAddress").value = p.address || "";
+        document.getElementById("mpPass").value    = p.passPref || "";
+        // Store username for saving later
+        document.getElementById("profileModal").dataset.user = user;
+        // Show form step, hide confirm step
+        document.getElementById("profileForm").style.display    = "block";
+        document.getElementById("profileConfirm").style.display = "none";
+        document.getElementById("profileModal").classList.add("open");
+      } else {
+        // Profile complete -- proceed to PIN or login
+        proceedAfterProfile(user, data.pinRequired);
+      }
+    }).getPortalData(user);
+  }
+
+  function proceedAfterProfile(user, pinRequired) {
+    if (pinRequired) {
+      document.getElementById("pinArea").style.display = "block";
+    } else {
+      loginSuccess(user);
+    }
+  }
+
+  /* -- Profile Modal Helpers -- */
+
+  // Auto-format phone as (XXX) XXX-XXXX while typing
+  function formatModalPhone(input) {
+    let digits = input.value.replace(/\D/g, '').substring(0, 10);
+    let fmt = '';
+    if (digits.length > 0) fmt  = '(' + digits.substring(0, 3);
+    if (digits.length >= 4) fmt += ') ' + digits.substring(3, 6);
+    if (digits.length >= 7) fmt += '-' + digits.substring(6, 10);
+    input.value = fmt;
+  }
+
+  // Format an existing phone value (digits or formatted) for display
+  function formatPhoneDisplay(val) {
+    const digits = val.toString().replace(/\D/g, '').substring(0, 10);
+    let fmt = '';
+    if (digits.length > 0) fmt  = '(' + digits.substring(0, 3);
+    if (digits.length >= 4) fmt += ') ' + digits.substring(3, 6);
+    if (digits.length >= 7) fmt += '-' + digits.substring(6, 10);
+    return fmt;
+  }
+
+  function triggerShake(fieldId) {
+    const el = document.getElementById(fieldId);
+    el.classList.remove('shake');
+    // Force reflow so animation restarts
+    void el.offsetWidth;
+    el.classList.add('error', 'shake');
+    setTimeout(() => el.classList.remove('shake'), 500);
+  }
+
+  function clearModalErrors() {
+    ['mfEmail','mfPhone','mfAddress','mfPass'].forEach(id => {
+      document.getElementById(id).classList.remove('error','shake');
+    });
+  }
+
+  function validateProfileModal() {
+    clearModalErrors();
+    const email   = document.getElementById("mpEmail").value.trim();
+    const phone   = document.getElementById("mpPhone").value.replace(/\D/g,'');
+    const address = document.getElementById("mpAddress").value.trim();
+    const pass    = document.getElementById("mpPass").value;
+
+    let valid = true;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!email || !emailRegex.test(email))  { triggerShake("mfEmail");   valid = false; }
+    if (phone.length !== 10)                 { triggerShake("mfPhone");   valid = false; }
+    if (!address)                            { triggerShake("mfAddress"); valid = false; }
+    if (!pass)                               { triggerShake("mfPass");    valid = false; }
+
+    if (!valid) return;
+
+    // All good -- show confirmation screen
+    document.getElementById("confEmail").textContent   = email;
+    document.getElementById("confPhone").textContent   = document.getElementById("mpPhone").value;
+    document.getElementById("confAddress").textContent = address;
+    document.getElementById("confPass").textContent    = pass;
+
+    document.getElementById("profileForm").style.display    = "none";
+    document.getElementById("profileConfirm").style.display = "block";
+    document.getElementById("profileModalBox").scrollTop    = 0;
+  }
+
+  function backToProfileForm() {
+    document.getElementById("profileConfirm").style.display = "none";
+    document.getElementById("profileForm").style.display    = "block";
+  }
+
+  function submitProfileModal() {
+    const user    = document.getElementById("profileModal").dataset.user;
+    const email   = document.getElementById("mpEmail").value.trim();
+    const phone   = document.getElementById("mpPhone").value.trim();
+    const address = document.getElementById("mpAddress").value.trim();
+    const pass    = document.getElementById("mpPass").value;
+
+    const profile = { email, phone, address, passPref: pass };
+    showSaving("Saving your profile...");
+
+    google.script.run
+      .withSuccessHandler(() => {
+        hideSaving("Profile saved!");
+        document.getElementById("profileModal").classList.remove("open");
+        // Re-fetch portal data to get updated pinRequired state
+        google.script.run.withSuccessHandler(data => {
+          proceedAfterProfile(user, data.pinRequired);
+        }).getPortalData(user);
+      })
+      .withFailureHandler(e => {
+        hideSavingError("Save failed -- please try again");
+      })
+      .updateProfile(user, profile);
+  }
+
+  function attemptLogin() {
+    const u = document.getElementById("userPicker").value, p = document.getElementById("userPin").value;
+    document.getElementById("loginSpin").style.display = "block";
+    document.getElementById("loginText").style.display = "none";
+    google.script.run.withSuccessHandler(res => {
+      document.getElementById("loginSpin").style.display = "none";
+      document.getElementById("loginText").style.display = "inline";
+      if(res.success) loginSuccess(u);
+      else showToast(res.msg || "Incorrect PIN");
+    }).verifyPin(u, p);
+  }
+
+  function goHome() {
+    sessionUser = null;
+    document.getElementById("app").style.display = "none";
+    document.getElementById("userStatusBar").style.display = "none";
+    document.getElementById("loginSection").style.display = "block";
+    document.getElementById("userPicker").value = "";
+    document.getElementById("pinArea").style.display = "none";
+    document.getElementById("userPin").value = "";
+  }
+
+  function applyTeamConfig(cfg) {
+    if (!cfg) return;
+    // Apply brand colours as CSS variables so entire UI updates instantly
+    document.documentElement.style.setProperty('--icedogs-red',   cfg.primaryColor   || '#C8102E');
+    document.documentElement.style.setProperty('--icedogs-black', cfg.secondaryColor || '#000000');
+    // Update team name label in status bar
+    const lbl = document.getElementById('teamNameLabel');
+    if (lbl) lbl.textContent = cfg.teamName ? cfg.teamName.toUpperCase() : '';
+    // Update page title
+    document.title = (cfg.teamShortName || 'Officials') + ' Portal';
+  }
+
+  function loginSuccess(u) {
+    sessionUser = u;
+    google.script.run.logAccess(u); // fire-and-forget access log
+    google.script.run.withSuccessHandler(data => {
+      // Apply team branding before showing anything
+      if (data.teamConfig) applyTeamConfig(data.teamConfig);
+
+      document.getElementById("loginSection").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      document.getElementById("userStatusBar").style.display = "flex";
+      document.getElementById("barUserName").innerText = u;
+
+      // Profile tab -- show read-only if completed, editable if not
+      const p = data.profile;
+      if (p.completed) {
+        document.getElementById("profileEditable").style.display = "none";
+        document.getElementById("profileReadOnly").style.display = "block";
+        document.getElementById("profileInitial").textContent = u.charAt(0).toUpperCase();
+        document.getElementById("profileReadName").textContent = u;
+        document.getElementById("roEmail").textContent   = p.email   || "--";
+        document.getElementById("roPhone").textContent   = p.phone   || "--";
+        document.getElementById("roAddress").textContent = p.address || "--";
+        document.getElementById("roPass").textContent    = p.passPref || "--";
+        // Admin contact list
+        const adminHtml = data.admins && data.admins.length
+          ? data.admins.map(function(a, i, arr) {
+              var border = i < arr.length - 1 ? 'border-bottom:1px solid var(--ios-sep);' : '';
+              var emailLine = a.email ? '<div style="font-size:11px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + a.email + '</div>' : '';
+              var emailBtn  = a.email ? '<a href="mailto:' + a.email + '" style="background:var(--icedogs-red); color:white; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:700; text-decoration:none; flex-shrink:0;">Email</a>' : '';
+              return '<div style="display:flex; align-items:center; gap:10px; padding:11px 14px; background:white; ' + border + '">'
+                + '<div style="width:32px; height:32px; border-radius:50%; background:var(--icedogs-red); color:white; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:13px; flex-shrink:0;">' + a.name.charAt(0) + '</div>'
+                + '<div style="flex:1; min-width:0;">'
+                + '<div style="font-weight:700; font-size:13px;">' + a.name + '</div>'
+                + emailLine
+                + '</div>'
+                + emailBtn
+                + '</div>';
+            }).join('')
+          : '<div style="padding:14px; font-size:12px; color:#888;">No admins listed.</div>';
+        document.getElementById("profileAdminList").innerHTML = adminHtml;
+      } else {
+        document.getElementById("profileReadOnly").style.display = "none";
+        document.getElementById("profileEditable").style.display = "block";
+        document.getElementById("pEmail").value   = p.email   || "";
+        document.getElementById("pPhone").value   = p.phone   || "";
+        document.getElementById("pAddress").value = p.address || "";
+        document.getElementById("pPass").value    = p.passPref || "Digital";
+      }
+
+      document.getElementById("dashboardList").innerHTML = data.allMonths.map(m => `<div class="status-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; opacity:${m.status !== 'active' ? '0.5' : '1'};"><div style="font-weight:700; font-size:13px; display:flex; align-items:center; gap:6px;">${m.status !== 'active' ? '<span title="Locked" style="font-size:11px;">🔒</span>' : ''}${m.label}</div><div class="status-badge">${m.submitted ? '✅' : '❌'}</div></div>`).join('');
+      if (data.isAdmin) {
+        document.getElementById("tabAdmin").style.display = "block";
+        const adminM = document.getElementById("adminMonthSelect");
+        adminM.innerHTML = '<option value="">Select Month for Scheduling...</option>';
+        data.allMonths.forEach(m => adminM.innerHTML += `<option value="${m.month}">${m.label}</option>`);
+        window._adminDataLoaded = false;
+      }
+
+      if (data.isEditor) {
+        // Show a limited scheduling tab, hide availability tab
+        document.getElementById("tabAvail").style.display = "none";
+        document.getElementById("tabEditor").style.display = "block";
+        window._editorPosition = data.editorPosition;
+        switchView('editor');
+      } else {
+        document.getElementById("tabAvail").style.display = "block";
+        document.getElementById("tabEditor").style.display = "none";
+        const mSel = document.getElementById("mSelect");
+        mSel.innerHTML = '<option value="">Select Month for Availability...</option>';
+        data.activeMonths.forEach(m => mSel.innerHTML += `<option value="${m.month}">${m.label}</option>`);
+        const pending = data.activeMonths.find(m => !m.submitted);
+        if (pending) { mSel.value = pending.month; loadGames(); }
+      }
+    }).getPortalData(u);
+  }
+
+  function switchView(v) {
+    ['viewAvail','viewMyGames','viewEditor','viewProfile','viewAdmin'].forEach(id => document.getElementById(id).style.display = 'none');
+    ['tabAvail','tabMyGames','tabEditor','tabProfile','tabAdmin'].forEach(id => {
+      var el = document.getElementById(id);
+      if (el) el.classList.remove('active');
+    });
+    document.getElementById('view' + v.charAt(0).toUpperCase() + v.slice(1)).style.display = 'block';
+    var tabEl = document.getElementById('tab' + v.charAt(0).toUpperCase() + v.slice(1));
+    if (tabEl) tabEl.classList.add('active');
+    if (v === 'myGames') loadMyGames();
+    if (v === 'editor') loadEditorMonths();
+    if (v === 'admin' && !window._adminDataLoaded) {
+      window._adminDataLoaded = true;
+      loadOfficialList(); loadAdminGames(); loadTeamsDropdown(); loadTeamsList();
+    }
+  }
+
+  function switchAdminTab(t) {
+    ['adminMatrixSection','adminGamesSection','adminAvailSection','adminOfficialSection','adminTeamsSection','adminSettingsSection'].forEach(id => document.getElementById(id).style.display = 'none');
+    document.getElementById('admin' + t.charAt(0).toUpperCase() + t.slice(1) + 'Section').style.display = 'block';
+    ['subTabMatrix','subTabGames','subTabAvail','subTabOfficial','subTabTeams','subTabSettings'].forEach(id => document.getElementById(id).classList.remove('active'));
+    document.getElementById('subTab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('active');
+    if (t === 'settings') { loadAdminSettings(); }
+    if (t === 'avail') { loadAdminAvailOverview(); }
+  }
+
+  // -- Admin Availability Tab ----------------------------------------------
+
+  let _adminAvailMonths = []; // cache months list for reuse
+
+  function loadAdminAvailOverview() {
+    document.getElementById("availOverviewTable").innerHTML = `
+      <div style="padding:12px;">
+        ${[1,2,3,4].map(()=>`<div style="height:36px;background:#e8e8e8;border-radius:8px;margin-bottom:8px;animation:pulse 1.2s ease-in-out infinite;"></div>`).join('')}
+      </div>`;
+    document.getElementById("adminAvailOfficial").innerHTML = '<option value="">-- Select Official --</option>';
+    document.getElementById("adminAvailMonth").innerHTML = '<option value="">-- Select Month --</option>';
+    document.getElementById("adminAvailGameList").innerHTML = '';
+    document.getElementById("adminAvailSaveBtn").style.display = 'none';
+
+    google.script.run.withSuccessHandler(data => {
+      _adminAvailMonths = data.months;
+
+      // Populate official dropdown
+      const offSel = document.getElementById("adminAvailOfficial");
+      data.officials.forEach(o => {
+        offSel.innerHTML += `<option value="${o.name}">${o.name}</option>`;
+      });
+
+      // Build overview table
+      if (!data.officials.length || !data.months.length) {
+        document.getElementById("availOverviewTable").innerHTML = '<div class="empty-state">No data yet.</div>';
+        return;
+      }
+
+      // Header row
+      let tableHtml = `<table style="width:100%; border-collapse:collapse; font-size:11px;">
+        <thead>
+          <tr style="background:#f8f9fa;">
+            <th style="text-align:left; padding:9px 14px; font-weight:900; color:#555; white-space:nowrap; position:sticky; left:0; background:#f8f9fa; z-index:1;">Official</th>
+            ${data.months.map(m => `<th style="padding:9px 8px; font-weight:800; color:#555; text-align:center; white-space:nowrap;">${m.label.split(' ')[0]}<br><span style="font-weight:700; color:#aaa;">${m.label.split(' ')[1]}</span></th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>`;
+
+      data.officials.forEach((o, i) => {
+        const bg = i % 2 === 0 ? 'white' : '#fafafa';
+        tableHtml += `<tr style="background:${bg}; cursor:pointer;" onclick="adminQuickSelect('${o.name}')">
+          <td style="padding:9px 14px; font-weight:700; white-space:nowrap; position:sticky; left:0; background:${bg}; z-index:1;">${o.name}</td>
+          ${o.monthStatus.map(ms => `<td style="text-align:center; padding:9px 8px;">${ms.submitted ? '✅' : '❌'}</td>`).join('')}
+        </tr>`;
+      });
+
+      tableHtml += '</tbody></table>';
+      document.getElementById("availOverviewTable").innerHTML = tableHtml;
+    }).withFailureHandler(e => {
+      document.getElementById("availOverviewTable").innerHTML = '<div class="empty-state">Failed to load.</div>';
+    }).getAdminAvailabilityOverview();
+  }
+
+  function adminQuickSelect(name) {
+    document.getElementById("adminAvailOfficial").value = name;
+    adminLoadAvailMonths();
+    // Scroll down to edit panel
+    document.getElementById("adminAvailOfficial").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function adminLoadAvailMonths() {
+    const name = document.getElementById("adminAvailOfficial").value;
+    const mSel = document.getElementById("adminAvailMonth");
+    mSel.innerHTML = '<option value="">-- Select Month --</option>';
+    document.getElementById("adminAvailGameList").innerHTML = '';
+    document.getElementById("adminAvailSaveBtn").style.display = 'none';
+    if (!name) return;
+    _adminAvailMonths.forEach(m => {
+      mSel.innerHTML += `<option value="${m.monthStr}">${m.label}</option>`;
+    });
+  }
+
+  function adminLoadAvailGames() {
+    const name = document.getElementById("adminAvailOfficial").value;
+    const month = document.getElementById("adminAvailMonth").value;
+    const cont = document.getElementById("adminAvailGameList");
+    document.getElementById("adminAvailSaveBtn").style.display = 'none';
+    cont.innerHTML = '';
+    if (!name || !month) return;
+    cont.innerHTML = '<div class="empty-state">Loading games...</div>';
+
+    google.script.run.withSuccessHandler(res => {
+      if (!res.games.length) {
+        cont.innerHTML = '<div class="empty-state">No games found for this month.</div>';
+        return;
+      }
+      cont.innerHTML = `
+        <div style="border-radius:12px; overflow:hidden; border:1px solid var(--ios-sep); margin-top:4px;">
+          ${res.games.map((g, i) => `
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; ${i < res.games.length - 1 ? 'border-bottom:1px solid var(--ios-sep);' : ''} background:white;">
+              <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+                <img src="${g.logo}" class="team-logo" style="flex-shrink:0;">
+                <div>
+                  <div style="font-size:10px; font-weight:800; color:#888;">${g.type} GAME #${g.gameId}</div>
+                  <div style="font-weight:800; font-size:13px;">vs ${g.opponent}</div>
+                  <div style="font-size:11px; color:#666;">${g.date} @ ${g.time}</div>
+                </div>
+              </div>
+              <label class="switch" style="flex-shrink:0; margin-left:10px;">
+                <input type="checkbox" data-id="${g.gameId}" ${g.savedStatus === 'Available' ? 'checked' : ''}>
+                <span class="slider"></span>
+              </label>
+            </div>`).join('')}
+        </div>`;
+      document.getElementById("adminAvailSaveBtn").style.display = 'block';
+    }).withFailureHandler(e => {
+      cont.innerHTML = '<div class="empty-state">Failed to load games.</div>';
+    }).adminGetGamesForMonth(name, month);
+  }
+
+  function adminSaveAvail() {
+    const name  = document.getElementById("adminAvailOfficial").value;
+    const month = document.getElementById("adminAvailMonth").value;
+    if (!name || !month) return;
+    const results = Array.from(document.querySelectorAll('#adminAvailGameList input[type="checkbox"]'))
+      .map(c => ({ gameId: c.getAttribute('data-id'), status: c.checked ? "Available" : "Not Available" }));
+    showSaving(`Saving for ${name}...`);
+    google.script.run
+      .withSuccessHandler(() => {
+        hideSaving("Availability updated!");
+        showToast(`✅ ${name}'s availability saved`);
+        loadAdminAvailOverview(); // refresh overview table
+        adminLoadAvailGames();    // reload to confirm saved state
+      })
+      .withFailureHandler(e => hideSavingError("Save failed"))
+      .adminSaveAvailability(name, month, results);
+  }
+
+  function saveProfile() {
+    const p = { email: document.getElementById("pEmail").value, phone: document.getElementById("pPhone").value, address: document.getElementById("pAddress").value, passPref: document.getElementById("pPass").value };
+    showSaving("Updating profile...");
+    google.script.run
+      .withSuccessHandler(() => { hideSaving("Profile updated!"); showToast("Profile Updated!"); })
+      .withFailureHandler(e => hideSavingError("Failed to save"))
+      .updateProfile(sessionUser, p);
+  }
+
+  function loadGames() {
+    const m = document.getElementById("mSelect").value;
+    if(!m) return;
+    google.script.run.withSuccessHandler(res => {
+
+      // Build admin contact HTML for the locked message
+      const adminHtml = res.admins && res.admins.length
+        ? res.admins.map(function(a) {
+            var emailLine = a.email ? '<div style="font-size:11px; color:#888;">' + a.email + '</div>' : '';
+            var emailBtn  = a.email ? '<a href="mailto:' + a.email + '" style="margin-left:auto; background:var(--icedogs-red); color:white; border:none; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:700; text-decoration:none; flex-shrink:0;">Email</a>' : '';
+            return '<div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f0f0f0;">'
+              + '<div style="width:32px; height:32px; border-radius:50%; background:var(--icedogs-red); color:white; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:13px; flex-shrink:0;">' + a.name.charAt(0) + '</div>'
+              + '<div><div style="font-weight:700; font-size:13px;">' + a.name + '</div>' + emailLine + '</div>'
+              + emailBtn + '</div>';
+          }).join('')
+        : '<div style="font-size:12px; color:#888;">No admins listed.</div>';
+
+      // Already submitted -- show read-only view + contact card
+      if (res.isSubmitted) {
+        document.getElementById("saveBtn").style.display = "none";
+        document.getElementById("gList").innerHTML = `
+          <div style="padding:16px; background:#fff8e1; border-bottom:2px solid #ffe082;">
+            <div style="font-weight:900; font-size:13px; color:#b45309; margin-bottom:4px;">✅ AVAILABILITY SUBMITTED</div>
+            <div style="font-size:12px; color:#92400e; line-height:1.5;">You've already submitted your availability for this month. To make changes, please contact an admin below.</div>
+          </div>
+          ${res.games.map(g => `
+            <div class="list-item" style="opacity:0.75;">
+              <div class="game-main-info">
+                <img src="${g.logo}" class="team-logo" style="margin-right:12px;">
+                <div class="game-text-content">
+                  <div class="game-num"><span class="type-tag">${g.type}</span>GAME #${g.gameId}</div>
+                  <div style="font-weight:800; font-size:15px; line-height:1.2;">vs ${g.opponent}</div>
+                  <div style="font-size:11px; color:#666; margin-top:2px;">${g.date} @ ${g.time}</div>
+                </div>
+              </div>
+              <div style="font-size:11px; font-weight:800; color:${g.savedStatus === 'Available' ? '#34C759' : '#aaa'}; flex-shrink:0;">
+                ${g.savedStatus === 'Available' ? '✓ Available' : '✗ Unavailable'}
+              </div>
+            </div>`).join('')}
+          <div style="padding:16px;">
+            <div style="font-weight:900; font-size:12px; color:#555; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">Contact an Admin</div>
+            ${adminHtml}
+          </div>`;
+        return;
+      }
+
+      // Normal view -- locked month or open for submission
+      document.getElementById("saveBtn").style.display = res.isLocked ? "none" : "block";
+
+      if (res.games.length === 0) {
+        document.getElementById("gList").innerHTML = '<div class="empty-state">No games found for this month.</div>';
+        return;
+      }
+
+      const allChecked = res.games.every(g => g.savedStatus === 'Available');
+      const isLocked   = res.isLocked;
+
+      var instructionBanner = !isLocked
+        ? '<div style="padding:14px 16px; background:#f0f4ff; border-bottom:2px solid #c7d4f5;">'
+          + '<div style="font-weight:900; font-size:12px; color:#1e3a8a; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">How to Submit</div>'
+          + '<div style="font-size:12px; color:#374151; line-height:1.6;">'
+          + '🟢 <strong>Toggle ON</strong> (green) = you are <strong>available</strong> for that game.<br>'
+          + '⚫ <strong>Toggle OFF</strong> (grey) = you are <strong>not available</strong>.<br>'
+          + 'Once you tap <strong>Submit Schedule</strong>, your availability is locked. Contact Wayne, Curtis or Matt if you need to make changes.'
+          + '</div>'
+          + '</div>'
+          + '<div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:#fafafa; border-bottom:1px solid var(--ios-sep);">'
+          + '<div style="font-size:13px; font-weight:800; color:#333;">Available for all games this month?</div>'
+          + '<label class="switch" style="margin:0;">'
+          + '<input type="checkbox" id="selectAllGames" ' + (allChecked ? 'checked' : '') + ' onchange="toggleAllGames(this.checked)">'
+          + '<span class="slider"></span>'
+          + '</label>'
+          + '</div>'
+          + '<div style="display:flex; align-items:center; justify-content:space-between; padding:10px 16px; background:#fff; border-bottom:1px solid var(--ios-sep);">'
+          + '<div style="font-size:13px; font-weight:800; color:#333;">📅 View as Calendar</div>'
+          + '<button onclick="toggleAvailCalendar()" id="calToggleBtn" style="background:none; border:1px solid #ddd; border-radius:20px; padding:5px 14px; font-size:11px; font-weight:800; color:#555; cursor:pointer;">Show</button>'
+          + '</div>'
+          + '<div id="availCalendar" style="display:none;"></div>'
+        : '';
+
+      // Store for calendar access
+      window._availGames = res.games;
+
+      document.getElementById("gList").innerHTML = instructionBanner
+        + res.games.map(g =>
+          '<div class="list-item">'
+          + '<div class="game-main-info">'
+          + '<img src="' + g.logo + '" class="team-logo" style="margin-right:12px;">'
+          + '<div class="game-text-content">'
+          + '<div class="game-num"><span class="type-tag">' + g.type + '</span>GAME #' + g.gameId + (g.isNew ? ' <span class="badge-new">NEW</span>' : '') + '</div>'
+          + '<div style="font-weight:800; font-size:15px; line-height:1.2;">vs ' + g.opponent + '</div>'
+          + '<div style="font-size:11px; color:#666; margin-top:2px;">' + g.date + ' @ ' + g.time + '</div>'
+          + (g.promo ? '<div class="promo-badge">' + g.promo + '</div>' : '')
+          + (g.notes ? '<div class="notes-alert">Note: ' + g.notes + '</div>' : '')
+          + '</div>'
+          + '</div>'
+          + '<label class="switch"><input type="checkbox" data-id="' + g.gameId + '" ' + (g.savedStatus === 'Available' ? 'checked' : '') + (isLocked ? ' disabled' : '') + ' onchange="syncSelectAll()"><span class="slider"></span></label>'
+          + '</div>'
+        ).join('');
+    }).getGamesForMonth(sessionUser, m);
+  }
+
+  function loadMyGames() {
+    const cont = document.getElementById("myGamesList");
+    cont.innerHTML = `<div style="padding:16px;">${[1,2].map(()=>`<div style="background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid #eee;"><div style="display:flex;gap:12px;align-items:center;"><div style="width:40px;height:40px;background:#e8e8e8;border-radius:8px;animation:pulse 1.2s ease-in-out infinite;flex-shrink:0;"></div><div style="flex:1;"><div style="height:12px;background:#e0e0e0;border-radius:5px;width:70%;margin-bottom:8px;animation:pulse 1.2s ease-in-out infinite 0.1s;"></div><div style="height:10px;background:#ececec;border-radius:5px;width:45%;animation:pulse 1.2s ease-in-out infinite 0.2s;"></div></div></div></div>`).join('')}</div>`;
+    google.script.run.withSuccessHandler(function(games) {
+      if (!games || games.length === 0) {
+        cont.innerHTML = '<div class="card" style="text-align:center; padding:30px 20px;">'
+          + '<div style="font-size:32px; margin-bottom:10px;">📋</div>'
+          + '<div style="font-weight:900; font-size:14px; color:#333; margin-bottom:6px;">No Upcoming Assignments</div>'
+          + '<div style="font-size:12px; color:#888;">You have no upcoming games assigned yet.</div>'
+          + '</div>';
+        return;
+      }
+      const now = new Date().getTime();
+      const threeHours = 3 * 60 * 60 * 1000;
+      var html = '<div class="card" style="padding:12px 16px; background:#fff; border:2px solid var(--icedogs-red); margin-bottom:12px; text-align:center;">'
+        + '<div style="font-weight:900; font-size:14px; color:var(--icedogs-red);">MY UPCOMING GAMES</div>'
+        + '<div style="font-size:11px; color:#888; margin-top:2px;">' + games.length + ' game' + (games.length !== 1 ? 's' : '') + ' assigned</div>'
+        + '</div>'
+        + '<div class="card" style="padding:0; overflow:hidden;">';
+
+      games.forEach(function(g, idx) {
+        var inProgress = g.isoTimestamp <= now && now - g.isoTimestamp < threeHours;
+        var border = idx < games.length - 1 ? 'border-bottom:1px solid var(--ios-sep);' : '';
+        var positionPills = g.positions.map(function(p) {
+          return '<span style="background:var(--icedogs-red); color:white; font-size:10px; font-weight:900; padding:3px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:0.3px;">' + p + '</span>';
+        }).join('');
+
+        html += '<div style="padding:14px 16px; ' + border + '">'
+          + '<div style="display:flex; align-items:center; gap:12px;">'
+          + '<img src="' + g.logo + '" style="width:36px; height:36px; object-fit:contain; flex-shrink:0;">'
+          + '<div style="flex:1; min-width:0;">'
+          + '<div style="font-weight:900; font-size:15px; color:#1a1a1a;">vs ' + g.opponent + '</div>'
+          + '<div style="font-size:11px; color:#666; margin-top:1px;">' + g.date + ' @ ' + g.time + '</div>'
+          + (g.promo ? '<div class="promo-badge" style="margin-top:4px;">' + g.promo + '</div>' : '')
+          + '</div>'
+          + (inProgress ? '<span style="background:#34C759; color:white; font-size:10px; font-weight:900; padding:4px 8px; border-radius:20px; flex-shrink:0;">● LIVE</span>' : '')
+          + '</div>'
+          + '<div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:5px;">'
+          + positionPills
+          + '</div>'
+          + '</div>';
+      });
+
+      html += '</div>';
+
+      // Past games toggle button
+      html += '<button onclick="togglePastGames()" id="pastGamesBtn" style="width:100%; height:40px; background:none; border:1px solid #ddd; border-radius:10px; color:#555; font-size:12px; font-weight:800; cursor:pointer; margin-top:4px;">📋 View Past Games</button>'
+        + '<div id="pastGamesList" style="display:none; margin-top:8px;"></div>';
+
+      cont.innerHTML = html;
+    }).withFailureHandler(function() {
+      document.getElementById("myGamesList").innerHTML = '<div class="empty-state">Failed to load.</div>';
+    }).getMyUpcomingGames(sessionUser);
+  }
+
+  var _pastGamesLoaded = false;
+  function togglePastGames() {
+    const list = document.getElementById('pastGamesList');
+    const btn  = document.getElementById('pastGamesBtn');
+    if (!list) return;
+    const open = list.style.display === 'block';
+    if (open) {
+      list.style.display = 'none';
+      btn.textContent = '📋 View Past Games';
+      btn.style.color = '#555';
+      btn.style.borderColor = '#ddd';
+      return;
+    }
+    list.style.display = 'block';
+    btn.textContent = '▲ Hide Past Games';
+    btn.style.color = 'var(--icedogs-red)';
+    btn.style.borderColor = 'var(--icedogs-red)';
+
+    if (_pastGamesLoaded) return;
+    list.innerHTML = '<div class="empty-state" style="padding:16px;">Loading...</div>';
+    google.script.run
+      .withSuccessHandler(function(games) {
+        _pastGamesLoaded = true;
+        if (!games || !games.length) {
+          list.innerHTML = '<div style="text-align:center; padding:20px; font-size:12px; color:#888;">No past games found.</div>';
+          return;
+        }
+        var html = '<div class="card" style="padding:0; overflow:hidden; border:1px solid #e5e5e5;">'
+          + '<div style="padding:10px 14px; background:#f0f0f0; font-weight:900; font-size:11px; color:#555; text-transform:uppercase; letter-spacing:0.5px;">Past Games (' + games.length + ')</div>';
+        games.forEach(function(g, idx) {
+          var border = idx < games.length - 1 ? 'border-bottom:1px solid var(--ios-sep);' : '';
+          var positionPills = g.positions.map(function(p) {
+            return '<span style="background:#888; color:white; font-size:10px; font-weight:900; padding:3px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:0.3px;">' + p + '</span>';
+          }).join('');
+          html += '<div style="padding:12px 16px; ' + border + '; opacity:0.85;">'
+            + '<div style="display:flex; align-items:center; gap:12px;">'
+            + '<img src="' + g.logo + '" style="width:32px; height:32px; object-fit:contain; flex-shrink:0; filter:grayscale(40%);">'
+            + '<div style="flex:1; min-width:0;">'
+            + '<div style="font-weight:900; font-size:14px; color:#333;">vs ' + g.opponent + '</div>'
+            + '<div style="font-size:11px; color:#888; margin-top:1px;">' + g.date + ' @ ' + g.time + '</div>'
+            + (g.promo ? '<div style="font-size:10px; color:#aaa; margin-top:2px; font-style:italic;">' + g.promo + '</div>' : '')
+            + '</div>'
+            + '</div>'
+            + '<div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:5px;">' + positionPills + '</div>'
+            + '</div>';
+        });
+        html += '</div>';
+        list.innerHTML = html;
+      })
+      .withFailureHandler(function() {
+        list.innerHTML = '<div style="padding:16px; font-size:12px; color:#e00;">Failed to load past games.</div>';
+      })
+      .getMyPastGames(sessionUser);
+  }
+  function toggleAvailCalendar() {
+    const cal = document.getElementById('availCalendar');
+    const btn = document.getElementById('calToggleBtn');
+    if (!cal) return;
+    const open = cal.style.display === 'block';
+    if (!open) {
+      renderAvailCalendar(window._availGames || []);
+      cal.style.display = 'block';
+      btn.textContent = 'Hide';
+      btn.style.color = '#C8102E';
+      btn.style.borderColor = '#C8102E';
+    } else {
+      cal.style.display = 'none';
+      btn.textContent = 'Show';
+      btn.style.color = '#555';
+      btn.style.borderColor = '#ddd';
+    }
+  }
+
+  function renderAvailCalendar(games) {
+    const cal = document.getElementById('availCalendar');
+    if (!cal || !games.length) return;
+
+    // Parse the month from first game date
+    // g.date is like "Friday, Mar 7" — use the month select value (yyyy-mm)
+    const monthVal = document.getElementById('mSelect').value; // "2025-03"
+    const [year, month] = monthVal.split('-').map(Number);
+
+    // Build a map of day -> games
+    const dayMap = {};
+    games.forEach(function(g) {
+      // g.date format: "Friday, Mar 7" — extract day number
+      const dayMatch = g.date.match(/(\d+)$/);
+      if (!dayMatch) return;
+      const day = parseInt(dayMatch[1]);
+      if (!dayMap[day]) dayMap[day] = [];
+      dayMap[day].push(g);
+    });
+
+    const firstDay  = new Date(year, month - 1, 1).getDay(); // 0=Sun
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const monthName = new Date(year, month - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+    const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var html = '<div style="padding:12px 14px; border-bottom:1px solid var(--ios-sep);">'
+      + '<div style="font-weight:900; font-size:13px; color:#1a1a1a; text-align:center; margin-bottom:10px;">' + monthName + '</div>'
+      + '<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px;">';
+
+    // Day headers
+    dayNames.forEach(function(d) {
+      html += '<div style="text-align:center; font-size:10px; font-weight:900; color:#888; padding:4px 0;">' + d + '</div>';
+    });
+
+    // Empty cells before first day
+    for (var i = 0; i < firstDay; i++) {
+      html += '<div></div>';
+    }
+
+    // Day cells
+    for (var d = 1; d <= daysInMonth; d++) {
+      const gamesOnDay = dayMap[d] || [];
+      const hasGame    = gamesOnDay.length > 0;
+      html += '<div style="min-height:52px; border-radius:6px; padding:3px; background:' + (hasGame ? '#fff' : '#fafafa') + '; border:1px solid ' + (hasGame ? '#C8102E' : '#eee') + ';">'
+        + '<div style="font-size:10px; font-weight:' + (hasGame ? '900' : '400') + '; color:' + (hasGame ? '#C8102E' : '#aaa') + '; text-align:right; margin-bottom:2px;">' + d + '</div>';
+      gamesOnDay.forEach(function(g) {
+        html += '<div style="background:#C8102E; border-radius:3px; padding:2px 3px; margin-bottom:2px;">'
+          + '<div style="font-size:9px; font-weight:900; color:white; line-height:1.2;">#' + g.gameId + '</div>'
+          + '<div style="font-size:9px; color:#ffcccc; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">vs ' + g.opponent + '</div>'
+          + '<div style="font-size:9px; color:#ffcccc; line-height:1.2;">' + g.time + '</div>'
+          + '</div>';
+      });
+      html += '</div>';
+    }
+
+    html += '</div></div>';
+    cal.innerHTML = html;
+  }
+
+  function toggleAllGames(checked) {
+    document.querySelectorAll('#gList input[data-id]').forEach(function(cb) {
+      cb.checked = checked;
+    });
+  }
+
+  function syncSelectAll() {
+    var all  = document.querySelectorAll('#gList input[data-id]');
+    var allOn = Array.from(all).every(function(cb) { return cb.checked; });
+    var master = document.getElementById('selectAllGames');
+    if (master) master.checked = allOn;
+  }
+
+  function saveAvail() {
+    const results = Array.from(document.querySelectorAll('#gList input[data-id]')).map(c => ({ gameId: c.getAttribute('data-id'), status: c.checked ? "Available" : "Not Available" }));
+    showSaving("Submitting availability...");
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.alreadySubmitted) {
+          hideSavingError("Already submitted");
+          showToast("You've already submitted this month. Contact an admin to make changes.");
+          loadGames(); // reload to show the locked submitted view
+          return;
+        }
+        hideSaving("Availability saved!");
+        google.script.run.withSuccessHandler(data => {
+          document.getElementById("dashboardList").innerHTML = data.allMonths.map(m => `<div class="status-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; opacity:${m.status !== 'active' ? '0.5' : '1'};"><div style="font-weight:700; font-size:13px; display:flex; align-items:center; gap:6px;">${m.status !== 'active' ? '<span title="Locked" style="font-size:11px;">🔒</span>' : ''}${m.label}</div><div class="status-badge">${m.submitted ? '✅' : '❌'}</div></div>`).join('');
+          // Advance to next unsubmitted month, or reload current if none
+          const nextPending = data.activeMonths.find(m => !m.submitted);
+          const mSel = document.getElementById("mSelect");
+          if (nextPending) { mSel.value = nextPending.month; }
+          loadGames();
+        }).getPortalData(sessionUser);
+      })
+      .withFailureHandler(e => hideSavingError("Submission failed"))
+      .saveAvailability(sessionUser, document.getElementById("mSelect").value, results);
+  }
+
+  /* --- ADMIN TEAMS FUNCTIONS --- */
+  function loadTeamsDropdown() {
+    google.script.run.withSuccessHandler(teams => {
+      const sel = document.getElementById("agOpponent");
+      if (!sel) return;
+      sel.innerHTML = '<option value="">-- Select Opponent --</option>';
+      teams.forEach(t => {
+        const teamName = t.name || t[0] || "Unknown Team";
+        sel.innerHTML += `<option value="${teamName}">${teamName}</option>`;
+      });
+    }).getTeams();
+  }
+
+  function loadTeamsList() {
+    const cont = document.getElementById("teamsListCont");
+    if (!cont) return;
+    cont.innerHTML = '<div class="empty-state">Loading OHL teams...</div>';
+    google.script.run.withSuccessHandler(teams => {
+      if(!teams || teams.length === 0) {
+        cont.innerHTML = '<div class="empty-state">No OHL teams found.</div>';
+        return;
+      }
+      cont.innerHTML = teams.map(t => {
+        const teamName = t.name || t[0] || "Unknown Team";
+        const teamLogo = t.logo || t[1] || "";
+        return `
+        <div class="item-row">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <img src="${teamLogo}" class="team-logo" onerror="this.style.display='none'">
+            <div style="font-weight:700;">${teamName}</div>
+          </div>
+          <button onclick="delTeam('${teamName}')" class="btn-icon">${iconTrash}</button>
+        </div>`;
+      }).join('');
+    }).getTeams();
+  }
+
+  function toggleTeamForm() {
+    const f = document.getElementById("addTeamForm");
+    f.style.display = f.style.display === "none" ? "block" : "none";
+  }
+
+  function addNewTeam() {
+    const n = document.getElementById("ntName").value;
+    if(!n) return showToast("Enter team name");
+    google.script.run.withSuccessHandler(() => {
+      document.getElementById("ntName").value = "";
+      toggleTeamForm();
+      loadTeamsList();
+      loadTeamsDropdown();
+      showToast("Team Added!");
+    }).addTeam(n);
+  }
+
+  function delTeam(n) {
+    showConfirm(
+      "🗑️",
+      "Remove Team?",
+      `${n} will be removed from the OHL teams list.`,
+      "Remove",
+      "btn-danger",
+      () => {
+        google.script.run.withSuccessHandler(() => {
+          loadTeamsList();
+          loadTeamsDropdown();
+          showToast("Team Removed");
+        }).deleteTeam(n);
+      }
+    );
+  }
+
+  /* --- ADMIN MATRIX FUNCTIONS (UPDATED: Dynamic Dropdowns + Fixed Staff) --- */
+
+  // Stores fixed staff map fetched from Settings: { "PA ANNOUNCER": ["Rod Mahwood"], ... }
+  let fixedStaffMap = {};
+
+  function loadAdminMatrix() {
+    const m = document.getElementById("adminMonthSelect").value;
+    if (!m) return;
+
+    // Show skeleton while loading
+    const cont = document.getElementById("matrixCont");
+    cont.innerHTML = [1,2,3].map(() => `
+      <div style="background:var(--ios-card);border-radius:12px;padding:16px;margin-bottom:10px;border:1px solid var(--ios-sep);">
+        <div style="height:13px;background:#e0e0e0;border-radius:6px;width:55%;margin-bottom:10px;animation:pulse 1.2s ease-in-out infinite;"></div>
+        <div style="height:10px;background:#ececec;border-radius:6px;width:35%;margin-bottom:14px;animation:pulse 1.2s ease-in-out infinite 0.15s;"></div>
+        <div style="display:flex;gap:8px;">${[1,2,3].map(()=>`<div style="height:28px;background:#e8e8e8;border-radius:8px;flex:1;animation:pulse 1.2s ease-in-out infinite 0.3s;"></div>`).join('')}</div>
+      </div>`).join('');
+
+    // Step 1: fetch fixed staff first, then fetch the matrix
+    google.script.run.withSuccessHandler(fsMap => {
+      fixedStaffMap = fsMap;
+
+      // Step 2: fetch matrix data
+      google.script.run.withSuccessHandler(res => {
+        const cont = document.getElementById("matrixCont");
+        if (!res.games || res.games.length === 0) {
+          cont.innerHTML = `<div class="empty-state">No games in ${m}</div>`;
+          return;
+        }
+
+        // Cache full assignment data per game for client-side filtering
+        matrixGameData = {};
+        res.games.forEach(g => {
+          // Store assignments as-is -- backend now handles fixed pool correctly
+          matrixGameData[g.gameId] = {
+            assignments:      g.assignments,
+            fixedRoleNames:   g.fixedRoleNames   || {},
+            fixedRoleAssigned: g.fixedRoleAssigned || []
+          };
+        });
+
+        // Render progress bar + all game cards
+        var progressBar = '<div class="card" style="background:#f8f9fa; border:1px solid #ddd; text-align:center; margin-bottom:15px;"><div style="font-size:10px; font-weight:900; color:#666;">SUBMISSION PROGRESS</div><div style="font-size:24px; font-weight:900;">' + res.stats.percent + '%</div><div style="font-size:11px; font-weight:700;">' + res.stats.submittedCount + ' / ' + res.stats.totalOfficials + ' Officials Completed</div></div>';
+        cont.innerHTML = progressBar + res.games.map(g => buildGameCard(g)).join('');
+
+        // Apply initial dropdown filtering for all games
+        res.games.forEach(g => refreshGameDropdowns(g.gameId));
+
+      }).getAdminMatrix(m);
+    }).getFixedStaff();
+  }
+
+  function loadEditorMonths() {
+    const pos = window._editorPosition || '';
+    const lbl = document.getElementById('editorPositionLabel');
+    if (lbl) lbl.textContent = pos + ' SCHEDULING';
+    google.script.run.withSuccessHandler(data => {
+      const sel = document.getElementById('editorMonthSelect');
+      sel.innerHTML = '<option value="">Select Month...</option>';
+      (data.allMonths || []).forEach(m => sel.innerHTML += `<option value="${m.month}">${m.label}</option>`);
+      const pending = (data.allMonths || []).find(m => m.status === 'active');
+      if (pending) { sel.value = pending.month; loadEditorMatrix(); }
+    }).getPortalData(sessionUser);
+  }
+
+  function loadEditorMatrix() {
+    const month = document.getElementById('editorMonthSelect').value;
+    const pos   = window._editorPosition || '';
+    const cont  = document.getElementById('editorGamesList');
+    if (!month) { cont.innerHTML = ''; return; }
+    cont.innerHTML = '<div class="empty-state">Loading...</div>';
+    google.script.run.withSuccessHandler(res => {
+      if (!res.games || res.games.length === 0) {
+        cont.innerHTML = '<div class="empty-state">No games found for this month.</div>';
+        return;
+      }
+      cont.innerHTML = res.games.map(g => {
+        const locked = g.scheduleLocked;
+        let opts = '<option value="">-- Vacant --</option>';
+        res.pool.forEach(name => {
+          opts += `<option value="${name}" ${name === g.currentValue ? 'selected' : ''}>${name}</option>`;
+        });
+        return `
+          <div class="matrix-game-card" style="border-left-color:${locked ? '#34C759' : '#C8102E'}; background:${locked ? '#f0fdf4' : '#fff'}; margin-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:12px; padding:12px;">
+              <img src="${g.logo}" class="team-logo">
+              <div style="flex:1;">
+                <div style="font-weight:800; font-size:14px;">vs ${g.opponent}</div>
+                <div style="font-size:11px; color:#666;">${g.date} @ ${g.time}</div>
+                ${locked ? '<div style="font-size:10px; font-weight:900; color:#34C759; margin-top:3px;">✓ Schedule Locked</div>' : ''}
+              </div>
+            </div>
+            <div style="padding:0 12px 12px; display:flex; align-items:center; gap:10px;">
+              <div style="font-size:11px; font-weight:900; color:#888; text-transform:uppercase; width:90px; flex-shrink:0;">${pos}</div>
+              <select style="flex:1; height:36px; border-radius:8px; border:1px solid #ddd; padding:0 10px; font-size:13px; font-weight:700; background:#fff;"
+                onchange="saveEditorAssignment('${g.gameId}', ${g.colIndex}, this.value, this)">
+                ${opts}
+              </select>
+            </div>
+          </div>`;
+      }).join('');
+    }).getEditorMatrix(month, pos);
+  }
+
+  function saveEditorAssignment(gameId, colIndex, value, selectEl) {
+    selectEl.disabled = true;
+    google.script.run
+      .withSuccessHandler(() => { selectEl.disabled = false; showToast('✓ Saved'); })
+      .withFailureHandler(() => { selectEl.disabled = false; showToast('Save failed'); })
+      .updateAssignment(gameId, colIndex, value);
+  }
+
+  function toggleScheduleLock(gameId, locked) {
+    // If trying to lock, verify all positions are filled first
+    if (locked) {
+      const allSelects = document.querySelectorAll('#card_' + gameId + ' select.matrix-select');
+      const vacant = Array.from(allSelects).filter(s => !s.value || !s.value.trim());
+      if (vacant.length > 0) {
+        // Uncheck the checkbox immediately
+        const chk = document.getElementById('lockChk_' + gameId);
+        if (chk) chk.checked = false;
+        showToast('⚠️ Cannot lock — ' + vacant.length + ' position' + (vacant.length > 1 ? 's are' : ' is') + ' still vacant.');
+        return;
+      }
+    }
+
+    const card  = document.getElementById('card_' + gameId);
+    const label = document.getElementById('lockLabel_' + gameId);
+    if (card) {
+      card.style.borderLeftColor = locked ? '#34C759' : '#C8102E';
+      card.style.background      = locked ? '#f0fdf4' : '#fff';
+    }
+    if (label) {
+      label.textContent = locked ? '✓ LOCKED' : 'LOCK';
+      label.style.color = locked ? '#34C759' : '#aaa';
+    }
+    google.script.run
+      .withFailureHandler(() => showToast('Failed to save lock status'))
+      .setScheduleLocked(gameId, locked);
+  }
+
+  function buildGameCard(g) {
+    const locked = g.scheduleLocked || false;
+    const cardBorderColor = locked ? '#34C759' : '#C8102E';
+    const cardBg          = locked ? '#f0fdf4' : '#fff';
+
+    // Calculate fill status
+    const total  = g.assignments.length;
+    const filled = g.assignments.filter(a => a.currentValue && a.currentValue.trim()).length;
+    const vacant = total - filled;
+    const allFilled = vacant === 0;
+    const statusColor = allFilled ? '#34C759' : vacant <= 2 ? '#FF9500' : '#C8102E';
+    const statusBar = `
+      <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
+        <div style="flex:1; height:4px; border-radius:2px; background:#eee; overflow:hidden;">
+          <div style="height:100%; width:${Math.round((filled/total)*100)}%; background:${statusColor}; border-radius:2px; transition:width 0.3s;"></div>
+        </div>
+        <span style="font-size:10px; font-weight:900; color:${statusColor}; white-space:nowrap;">
+          ${allFilled ? '✓ ALL FILLED' : filled + '/' + total + ' FILLED · ' + vacant + ' OPEN'}
+        </span>
+      </div>`;
+    const rows = g.assignments.map(a => {
+      const isFixed = a.isFixed;
+      const isViolation = g.violationColIndexes && g.violationColIndexes.includes(a.colIndex);
+
+      // Build dropdown options
+      let options = '<option value="">-- Vacant --</option>';
+      if (isFixed && a.poolWithStatus && a.poolWithStatus.length) {
+        // Fixed position: show all names plainly (availability not tracked)
+        options += a.poolWithStatus.map(p => {
+          var sel = p.name === a.currentValue ? ' selected' : '';
+          return '<option value="' + p.name + '"' + sel + '>' + p.name + '</option>';
+        }).join('');
+      } else {
+        options += a.availablePool.map(name =>
+          `<option value="${name}" ${name === a.currentValue ? 'selected' : ''}>${name}</option>`
+        ).join('');
+      }
+
+      return `
+        <div class="matrix-row" id="row_${g.gameId}_${a.colIndex}" style="${isViolation ? 'background:#fff1f2; border-left:3px solid #ef4444;' : ''}">
+          <div class="matrix-pos">
+            ${a.position}
+            ${isFixed ? '<span style="font-size:9px; color:#C8102E; font-weight:900; margin-left:4px;">★ FIXED</span>' : ''}
+            ${isViolation ? '<span style="font-size:9px; color:#ef4444; font-weight:900; margin-left:4px;">⚠ OVER LIMIT</span>' : ''}
+          </div>
+          <select
+            class="matrix-select"
+            id="sel_${g.gameId}_${a.colIndex}"
+            data-game="${g.gameId}"
+            data-col="${a.colIndex}"
+            style="${isViolation ? 'border-color:#ef4444; background:#fff1f2;' : ''}"
+            onchange="handleAssignmentChange('${g.gameId}', ${a.colIndex}, this.value)"
+          >
+            ${options}
+          </select>
+          <div class="row-saving-dot"></div>
+        </div>`;
+    }).join('');
+
+    // Violation banner
+    const violationNames = [];
+    if (g.violationColIndexes && g.violationColIndexes.length > 0) {
+      const nameCounts = {};
+      g.assignments.forEach(a => {
+        if (a.currentValue) nameCounts[a.currentValue] = (nameCounts[a.currentValue] || 0) + 1;
+      });
+      Object.entries(nameCounts).forEach(([name, count]) => {
+        if (count > 2) violationNames.push({ name, count });
+      });
+    }
+
+    const violationBanner = violationNames.length ? `
+      <div style="background:#fff1f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; margin:8px 12px 0; display:flex; align-items:flex-start; gap:8px;">
+        <span style="font-size:16px; flex-shrink:0;">⚠️</span>
+        <div>
+          <div style="font-weight:900; font-size:12px; color:#dc2626; margin-bottom:2px;">ASSIGNMENT VIOLATION</div>
+          ${violationNames.map(v => `<div style="font-size:11px; color:#7f1d1d;">${v.name} is assigned to <strong>${v.count} positions</strong> -- maximum is 2.</div>`).join('')}
+        </div>
+      </div>` : '';
+
+    // Unscheduled officials footer
+    const unscheduledSection = g.unscheduled && g.unscheduled.length ? `
+      <div class="unscheduled-footer" style="border-top:1px solid var(--ios-sep); padding:10px 14px; background:#f8f9fa;">
+        <div style="font-size:10px; font-weight:900; color:#888; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:6px;">Available · Not Scheduled</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+          ${g.unscheduled.map(name => `
+            <span style="background:white; border:1px solid #d1d5db; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700; color:#374151;">${name}</span>
+          `).join('')}
+        </div>
+      </div>` : `
+      <div class="unscheduled-footer" style="border-top:1px solid var(--ios-sep); padding:10px 14px; background:#f8f9fa;">
+        <div style="font-size:10px; font-weight:900; color:#888; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:2px;">Available · Not Scheduled</div>
+        <div style="font-size:11px; color:#aaa; font-style:italic;">All available officials are scheduled.</div>
+      </div>`;
+
+    return `
+      <div class="matrix-game-card" id="card_${g.gameId}" style="border-left-color:${cardBorderColor}; background:${cardBg};">
+        <div class="matrix-header" onclick="event.target.closest('label,input') || this.nextElementSibling.classList.toggle('expanded')">
+          <img src="${g.logo}" class="team-logo">
+          <div style="flex:1;">
+            <div style="font-weight:800; font-size:14px;">vs ${g.details.opponent}</div>
+            <div style="font-size:11px; color:#666;">${g.details.date} @ ${g.details.time}</div>
+            <div id="statusBar_${g.gameId}">${statusBar}</div>
+          </div>
+          ${violationNames.length ? '<span style="font-size:16px; margin-right:4px;" title="Assignment violation">⚠️</span>' : ''}
+          <label onclick="event.stopPropagation()" style="display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; flex-shrink:0; margin-left:6px;">
+            <input type="checkbox" id="lockChk_${g.gameId}" ${locked ? 'checked' : ''}
+              onchange="toggleScheduleLock('${g.gameId}', this.checked)"
+              style="width:18px; height:18px; accent-color:#34C759; cursor:pointer;">
+            <span style="font-size:9px; font-weight:900; color:${locked ? '#34C759' : '#aaa'}; text-transform:uppercase; letter-spacing:0.3px; white-space:nowrap;" id="lockLabel_${g.gameId}">${locked ? '✓ LOCKED' : 'LOCK'}</span>
+          </label>
+          <div style="font-size:18px; margin-left:4px;">⌄</div>
+        </div>
+        <div class="matrix-content">
+          ${violationBanner}
+          ${rows}
+          ${unscheduledSection}
+        </div>
+      </div>`;
+  }
+
+  /**
+   * Called when any assignment dropdown changes.
+   * Immediately refreshes all dropdowns in that game for snappy UX,
+   * then persists the change to the sheet via Apps Script.
+   */
+  function handleAssignmentChange(gameId, col, name) {
+    // Check if assigning a fixed-role person who is already in their fixed position
+    if (name) {
+      const gameCache = matrixGameData[gameId];
+      if (gameCache && gameCache.fixedRoleNames && gameCache.fixedRoleAssigned) {
+        const fixedPos = gameCache.fixedRoleNames[name];
+        if (fixedPos && gameCache.fixedRoleAssigned.includes(name)) {
+          // Revert dropdown
+          const sel = document.getElementById(`sel_${gameId}_${col}`);
+          if (sel) sel.value = '';
+          showToast(`⚠️ ${name} is already assigned as ${fixedPos} for this game.`);
+          refreshGameDropdowns(gameId);
+          return;
+        }
+      }
+    }
+
+    // Instant client-side re-filter before the server round-trip
+    refreshGameDropdowns(gameId);
+
+    // Show saving indicator on the specific row
+    const sel = document.getElementById(`sel_${gameId}_${col}`);
+    if (sel) {
+      const dot = sel.closest('.matrix-row')?.querySelector('.row-saving-dot');
+      if (dot) dot.classList.add('active');
+    }
+    showSaving(name ? `Assigning ${name}...` : "Clearing position...");
+
+    google.script.run
+      .withSuccessHandler(res => {
+        // Remove row dot
+        if (sel) {
+          const dot = sel.closest('.matrix-row')?.querySelector('.row-saving-dot');
+          if (dot) dot.classList.remove('active');
+        }
+        if (!res.success) {
+          hideSavingError(res.msg);
+          showToast(res.msg);
+          loadAdminMatrix();
+        } else {
+          hideSaving(name ? `Assigned!` : "Cleared");
+        }
+      })
+      .withFailureHandler(e => {
+        if (sel) {
+          const dot = sel.closest('.matrix-row')?.querySelector('.row-saving-dot');
+          if (dot) dot.classList.remove('active');
+        }
+        hideSavingError("Save failed");
+        loadAdminMatrix();
+      })
+      .updateAssignment(gameId, col, name);
+  }
+
+  /**
+   * Re-filters all dropdowns within a single game card.
+   * Names already selected in another position are hidden,
+   * EXCEPT for officials in MULTI_ROLE_EXCEPTIONS_CLIENT.
+   */
+  function refreshGameDropdowns(gameId) {
+    const selects = document.querySelectorAll(`select[data-game="${gameId}"]`);
+    if (!selects.length) return;
+
+    // Snapshot of what's currently selected per colIndex
+    const currentSelections = {};
+    selects.forEach(sel => {
+      currentSelections[sel.getAttribute('data-col')] = sel.value;
+    });
+
+    // Count occurrences of each name across all positions
+    const nameCounts = {};
+    Object.values(currentSelections).forEach(n => {
+      if (n && n.trim()) nameCounts[n] = (nameCounts[n] || 0) + 1;
+    });
+
+    selects.forEach(sel => {
+      const col = sel.getAttribute('data-col');
+      const myValue = sel.value;
+
+      // Names taken by OTHER positions in this game
+      const takenElsewhere = new Set(
+        Object.entries(currentSelections)
+          .filter(([c, n]) => c !== col && n && n.trim() !== "")
+          .map(([, n]) => n)
+      );
+
+      // Get the full available pool for this position from cache
+      const gameCache = matrixGameData[gameId];
+      if (!gameCache) return;
+      const assignment = gameCache.assignments.find(
+        a => a.colIndex.toString() === col.toString()
+      );
+      if (!assignment) return;
+
+      // Filter: keep name if not taken elsewhere, OR is a multi-role exception, OR is current value
+      const filteredPool = assignment.availablePool.filter(name =>
+        !takenElsewhere.has(name) ||
+        MULTI_ROLE_EXCEPTIONS_CLIENT.includes(name) ||
+        name === myValue
+      );
+
+      // Rebuild options, preserving current selection
+      // For fixed positions, show all names with availability tags; for regular, filter normally
+      if (assignment.isFixed && assignment.poolWithStatus && assignment.poolWithStatus.length) {
+        sel.innerHTML = '<option value="">-- Vacant --</option>' +
+          assignment.poolWithStatus.map(function(p) {
+            var sel2 = p.name === myValue ? ' selected' : '';
+            return '<option value="' + p.name + '"' + sel2 + '>' + p.name + '</option>';
+          }).join('');
+      } else {
+        sel.innerHTML = '<option value="">-- Vacant --</option>' +
+          filteredPool.map(name =>
+            `<option value="${name}" ${name === myValue ? 'selected' : ''}>${name}</option>`
+          ).join('');
+      }
+
+      // Flag violation rows: multi-role exception assigned 3+ times
+      const row = document.getElementById(`row_${gameId}_${col}`);
+      if (row) {
+        const isViolation = myValue && MULTI_ROLE_EXCEPTIONS_CLIENT.includes(myValue) && nameCounts[myValue] > 2;
+        if (isViolation) {
+          row.style.background = '#fff1f2';
+          row.style.borderLeft = '3px solid #ef4444';
+          sel.style.borderColor = '#ef4444';
+          sel.style.background = '#fff1f2';
+          // Add or update inline violation label
+          let lbl = row.querySelector('.violation-lbl');
+          if (!lbl) {
+            const posDiv = row.querySelector('.matrix-pos');
+            lbl = document.createElement('span');
+            lbl.className = 'violation-lbl';
+            lbl.style.cssText = 'font-size:9px; color:#ef4444; font-weight:900; margin-left:4px;';
+            lbl.textContent = '⚠ OVER LIMIT';
+            posDiv.appendChild(lbl);
+          }
+        } else {
+          row.style.background = '';
+          row.style.borderLeft = '';
+          sel.style.borderColor = '';
+          sel.style.background = '';
+          const lbl = row.querySelector('.violation-lbl');
+          if (lbl) lbl.remove();
+        }
+      }
+    });
+
+    // Update the unscheduled footer
+    updateUnscheduledFooter(gameId, currentSelections);
+    updateStatusBar(gameId);
+  }
+
+  function updateStatusBar(gameId) {
+    const barEl = document.getElementById('statusBar_' + gameId);
+    if (!barEl) return;
+    const allSelects = document.querySelectorAll('#card_' + gameId + ' select.matrix-select');
+    const total  = allSelects.length;
+    const filled = Array.from(allSelects).filter(s => s.value && s.value.trim()).length;
+    const vacant = total - filled;
+    const allFilled   = vacant === 0;
+    const statusColor = allFilled ? '#34C759' : vacant <= 2 ? '#FF9500' : '#C8102E';
+    const pct = total > 0 ? Math.round((filled / total) * 100) : 0;
+    barEl.innerHTML =
+      '<div style="display:flex; align-items:center; gap:6px; margin-top:4px;">'
+      + '<div style="flex:1; height:4px; border-radius:2px; background:#eee; overflow:hidden;">'
+      + '<div style="height:100%; width:' + pct + '%; background:' + statusColor + '; border-radius:2px; transition:width 0.3s;"></div>'
+      + '</div>'
+      + '<span style="font-size:10px; font-weight:900; color:' + statusColor + '; white-space:nowrap;">'
+      + (allFilled ? '✓ ALL FILLED' : filled + '/' + total + ' FILLED · ' + vacant + ' OPEN')
+      + '</span></div>';
+  }
+
+  function updateUnscheduledFooter(gameId, currentSelections) {
+    const card = document.getElementById(`card_${gameId}`);
+    if (!card) return;
+    const footer = card.querySelector('.unscheduled-footer');
+    if (!footer) return;
+    const gameCache = matrixGameData[gameId];
+    if (!gameCache) return;
+
+    const scheduledNames = new Set(Object.values(currentSelections).filter(n => n && n.trim()));
+
+    // Build unscheduled from the union of all availablePools minus scheduled, excluding fixed-position people
+    const allAvailable = new Set();
+    gameCache.assignments.forEach(a => {
+      if (!a.isFixed) a.availablePool.forEach(n => allAvailable.add(n));
+    });
+    const unscheduled = [...allAvailable].filter(n => !scheduledNames.has(n)).sort();
+
+    if (unscheduled.length) {
+      footer.innerHTML = `
+        <div style="font-size:10px; font-weight:900; color:#888; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:6px;">Available · Not Scheduled</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+          ${unscheduled.map(name => `<span style="background:white; border:1px solid #d1d5db; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700; color:#374151;">${name}</span>`).join('')}
+        </div>`;
+    } else {
+      footer.innerHTML = `
+        <div style="font-size:10px; font-weight:900; color:#888; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:2px;">Available · Not Scheduled</div>
+        <div style="font-size:11px; color:#aaa; font-style:italic;">All available officials are scheduled.</div>`;
+    }
+  }
+
+  /* --- ADMIN OFFICIALS & GAMES --- */
+  function loadOfficialList() {
+    google.script.run.withSuccessHandler(staff => {
+      document.getElementById("officialListCont").innerHTML = staff.map(s => {
+        const isComplete = s.completed && s.completed.toString().toLowerCase() === 'yes';
+        const badge = isComplete
+          ? '<span style="font-size:10px; font-weight:900; color:#166534; background:#dcfce7; border:1px solid #86efac; border-radius:20px; padding:2px 8px; white-space:nowrap;">✓ Complete</span>'
+          : '<span style="font-size:10px; font-weight:900; color:#991b1b; background:#fff1f2; border:1px solid #fecaca; border-radius:20px; padding:2px 8px; white-space:nowrap;">⚠ Incomplete</span>';
+        return '<div class="official-row">'
+          + '<div class="official-info">'
+          + '<div style="display:flex; align-items:center; gap:8px;"><div class="official-name">' + s.name + '</div>' + badge + '</div>'
+          + '<div class="official-role-tag">' + s.role + (s.email ? ' | ' + s.email : '') + '</div>'
+          + '</div>'
+          + '<div style="display:flex; gap:8px;">'
+          + '<button onclick=\'editOfficialMode(' + JSON.stringify(s) + ')\' class="btn-icon">' + iconEdit + '</button>'
+          + '<button onclick="delOfficial(\'' + s.name + '\')" class="btn-icon">' + iconTrash + '</button>'
+          + '</div></div>';
+      }).join('');
+    }).getOfficialsDetailed();
+  }
+
+  function runPromoImport() {
+    showSaving('Matching promos to games...');
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res.success) {
+          let msg = '✓ ' + res.matched + ' promo' + (res.matched !== 1 ? 's' : '') + ' added';
+          if (res.skipped) msg += ' · ' + res.skipped + ' already set (not overwritten)';
+          if (res.unmatched && res.unmatched.length) {
+            msg += ' · ' + res.unmatched.length + ' unmatched (no game on that date)';
+            console.warn('Unmatched promos:', res.unmatched);
+          }
+          hideSaving(msg);
+          showToast(msg);
+          _adminGamesLoaded = false; loadAdminGames();
+        } else {
+          hideSavingError('Promo import failed: ' + (res.msg || 'unknown error'));
+        }
+      })
+      .withFailureHandler(function(e) { hideSavingError('Promo import failed: ' + (e.message || 'unknown')); })
+      .importPromos();
+  }
+
+  function importOHLSchedule() {
+    document.getElementById('importSeasonRow').style.display = 'block';
+  }
+
+  function runOHLImport() {
+    const seasonId = document.getElementById('importSeasonId').value.trim() || '';
+    document.getElementById('importSeasonRow').style.display = 'none';
+    showSaving('Fetching OHL schedule...');
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res.success) {
+          hideSaving('Import complete!');
+          showToast('✓ Imported ' + res.imported + ' home game' + (res.imported !== 1 ? 's' : '') + (res.skipped ? ' · ' + res.skipped + ' skipped (away/existing)' : ''));
+          _adminGamesLoaded = false; loadAdminGames();
+        } else {
+          hideSavingError('Import failed: ' + (res.msg || 'unknown error'));
+        }
+      })
+      .withFailureHandler(function(e) { hideSavingError('Import failed: ' + (e.message || 'unknown')); })
+      .importOHLSchedule(seasonId);
+  }
+
+  var _adminGamesLoaded = false;
+  function loadAdminGames() {
+    _adminGamesLoaded = true;
+    google.script.run.withSuccessHandler(games => {
+      const cont = document.getElementById("adminGamesListCont");
+      if (!games || games.length === 0) {
+        cont.innerHTML = '<div class="empty-state">No games scheduled.</div>';
+        return;
+      }
+
+      // Group games by month label
+      const months = {};
+      games.forEach(g => {
+        const d = new Date(g.date + "T12:00:00");
+        const label = d.toLocaleDateString('en-CA', { month: 'long', year: 'numeric' });
+        if (!months[label]) months[label] = [];
+        months[label].push(g);
+      });
+
+      cont.innerHTML = Object.entries(months).map(([label, mGames], idx) => {
+        const monthId = 'mg_' + label.replace(/\s/g,'_');
+        const isFirst = idx === 0;
+        return `
+          <div style="margin-bottom:10px; border-radius:12px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.08); border:1px solid var(--ios-sep);">
+            <div onclick="toggleMonthGames('${monthId}')"
+              style="display:flex; align-items:center; justify-content:space-between; padding:13px 16px; background:#f8f9fa; border-bottom:1px solid var(--ios-sep); cursor:pointer; user-select:none;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:4px; height:18px; background:var(--icedogs-red); border-radius:2px; flex-shrink:0;"></div>
+                <span style="color:var(--ios-text); font-weight:900; font-size:13px; text-transform:uppercase; letter-spacing:0.5px;">${label}</span>
+                <span style="background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0; font-size:10px; font-weight:800; padding:2px 8px; border-radius:20px;">${mGames.length} game${mGames.length !== 1 ? 's' : ''}</span>
+              </div>
+              <span id="${monthId}_chevron" style="color:#94a3b8; font-size:12px;">${isFirst ? '▲' : '▼'}</span>
+            </div>
+            <div id="${monthId}" style="display:${isFirst ? 'block' : 'none'}; background:white;">
+              ${mGames.map((g, i) => `
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:${i < mGames.length - 1 ? '1px solid var(--ios-sep)' : 'none'};">
+                  <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
+                    <img src="${g.logo}" class="team-logo" style="flex-shrink:0;">
+                    <div style="min-width:0;">
+                      <div class="game-num" style="margin-bottom:2px;">${g.type} #${g.gameId}</div>
+                      <div style="font-weight:800; font-size:14px; line-height:1.2;">vs ${g.opponent}</div>
+                      <div style="font-size:11px; color:#666; margin-top:2px;">${g.date} @ ${g.time}</div>
+                      ${g.notes ? '<div class="notes-alert" style="margin-top:3px;">📌 ' + g.notes + '</div>' : ''}
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:8px; flex-shrink:0; margin-left:8px;">
+                    <button onclick='editGame(${JSON.stringify(g)})' class="btn-icon">${iconEdit}</button>
+                    <button onclick="delGame('${g.gameId}')" class="btn-icon">${iconTrash}</button>
+                  </div>
+                </div>`).join('')}
+            </div>
+          </div>`;
+      }).join('');
+    }).getAllGamesList();
+  }
+
+  function toggleMonthGames(monthId) {
+    const section = document.getElementById(monthId);
+    const chevron = document.getElementById(monthId + '_chevron');
+    const isOpen = section.style.display !== 'none';
+    section.style.display = isOpen ? 'none' : 'block';
+    chevron.textContent = isOpen ? '▼' : '▲';
+  }
+
+  function openGameModal() {
+    // New game -- clear all fields, unlock Game ID
+    document.getElementById("agId").value = "";
+    document.getElementById("agId").readOnly = false;
+    document.getElementById("agDate").value = "";
+    document.getElementById("agTime").value = "";
+    document.getElementById("agOpponent").value = "";
+    document.getElementById("agType").value = "(R)";
+    document.getElementById("agPromo").value = "";
+    document.getElementById("agNotes").value = "";
+    ['gmfId','gmfDate','gmfTime','gmfOpponent'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('error','shake');
+    });
+    document.getElementById("gameModalTitle").textContent = "New Game";
+    document.getElementById("gameModalSubtitle").textContent = "Fill in the game details below";
+    document.getElementById("gameModal").classList.add("open");
+  }
+
+  function editGame(g) {
+    document.getElementById("agId").value = g.gameId;
+    document.getElementById("agId").readOnly = true;
+    document.getElementById("agDate").value = g.date;
+    document.getElementById("agTime").value = g.time;
+    // Ensure opponent exists in dropdown
+    const oppSel = document.getElementById("agOpponent");
+    if (![...oppSel.options].some(o => o.value === g.opponent)) {
+      oppSel.innerHTML += `<option value="${g.opponent}">${g.opponent}</option>`;
+    }
+    oppSel.value = g.opponent;
+    document.getElementById("agType").value = g.type || "(R)";
+    document.getElementById("agPromo").value = g.promo || "";
+    document.getElementById("agNotes").value = g.notes || "";
+    ['gmfId','gmfDate','gmfTime','gmfOpponent'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('error','shake');
+    });
+    document.getElementById("gameModalTitle").textContent = `Edit Game #${g.gameId}`;
+    document.getElementById("gameModalSubtitle").textContent = `vs ${g.opponent} · ${g.date}`;
+    document.getElementById("gameModal").classList.add("open");
+  }
+
+  function closeGameModal() {
+    document.getElementById("gameModal").classList.remove("open");
+    document.getElementById("agId").readOnly = false;
+  }
+  function toggleOfficialForm() { const f = document.getElementById("addOfficialForm"); f.style.display = f.style.display === "none" ? "block" : "none"; }
+  
+  function addOfficial() {
+    const data = { name: document.getElementById("noName").value, email: document.getElementById("noEmail").value, phone: document.getElementById("noPhone").value, role: document.getElementById("noRole").value };
+    showSaving("Saving official...");
+    google.script.run
+      .withSuccessHandler(() => {
+        hideSaving("Official saved!");
+        showToast("Official Saved");
+        toggleOfficialForm();
+        loadOfficialList();
+        document.getElementById("noName").value = "";
+      })
+      .withFailureHandler(e => hideSavingError("Save failed"))
+      .saveOfficial(data);
+  }
+
+  function saveGame() {
+    // Validate required fields
+    const gameId  = document.getElementById("agId").value.trim();
+    const date    = document.getElementById("agDate").value;
+    const time    = document.getElementById("agTime").value;
+    const opponent = document.getElementById("agOpponent").value;
+    let valid = true;
+    [['gmfId', gameId], ['gmfDate', date], ['gmfTime', time], ['gmfOpponent', opponent]].forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('error','shake');
+      if (!val) { triggerShake(id); valid = false; }
+    });
+    if (!valid) return;
+
+    const data = { gameId, date, time, opponent,
+      type:  document.getElementById("agType").value,
+      promo: document.getElementById("agPromo").value,
+      notes: document.getElementById("agNotes").value
+    };
+    showSaving("Saving game...");
+    google.script.run
+      .withSuccessHandler(() => {
+        hideSaving("Game saved!");
+        showToast("Game Saved");
+        closeGameModal();
+        _adminGamesLoaded = false; loadAdminGames();
+      })
+      .withFailureHandler(e => hideSavingError("Save failed"))
+      .saveGame(data);
+  }
+
+  /* --- CONFIRM DIALOG (replaces browser confirm()) --- */
+  let _confirmCallback = null;
+
+  function showConfirm(icon, title, msg, okLabel, okClass, callback) {
+    document.getElementById("confirmIcon").textContent  = icon;
+    document.getElementById("confirmTitle").textContent = title;
+    document.getElementById("confirmMsg").textContent   = msg;
+    const btn = document.getElementById("confirmOkBtn");
+    btn.textContent  = okLabel;
+    btn.className    = okClass || "btn-danger";
+    _confirmCallback = callback;
+    document.getElementById("confirmModal").classList.add("open");
+  }
+
+  function confirmOk() {
+    const cb = _confirmCallback;
+    closeConfirm();
+    if (cb) cb();
+  }
+
+  function closeConfirm() {
+    document.getElementById("confirmModal").classList.remove("open");
+    _confirmCallback = null;
+  }
+
+  /* --- EDIT OFFICIAL MODAL --- */
+  let _editingOfficialName = "";
+
+  function editOfficialMode(s) {
+    _editingOfficialName = s.name;
+    document.getElementById("editOfficialSubtitle").textContent = s.name;
+
+    // Pre-fill fields
+    document.getElementById("eofEmailVal").value   = s.email   || "";
+    document.getElementById("eofPhoneVal").value   = s.phone   ? formatPhoneDisplay(s.phone.toString()) : "";
+    document.getElementById("eofAddressVal").value = s.address || "";
+    document.getElementById("eofPassVal").value    = s.passPref || "";
+    document.getElementById("eofRoleVal").value    = s.role    || "Official";
+
+    // Clear any previous errors
+    ['eofEmail','eofPhone','eofAddress','eofPass'].forEach(id =>
+      document.getElementById(id).classList.remove('error','shake')
+    );
+
+    document.getElementById("editOfficialModal").classList.add("open");
+  }
+
+  function closeEditOfficialModal() {
+    document.getElementById("editOfficialModal").classList.remove("open");
+    _editingOfficialName = "";
+  }
+
+  function saveEditOfficial() {
+    // Validate
+    const email   = document.getElementById("eofEmailVal").value.trim();
+    const phone   = document.getElementById("eofPhoneVal").value.replace(/\D/g,'');
+    const address = document.getElementById("eofAddressVal").value.trim();
+    const pass    = document.getElementById("eofPassVal").value;
+    const role    = document.getElementById("eofRoleVal").value;
+
+    let valid = true;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    ['eofEmail','eofPhone','eofAddress','eofPass'].forEach(id =>
+      document.getElementById(id).classList.remove('error','shake')
+    );
+
+    if (!email || !emailRegex.test(email)) { triggerShake("eofEmail");   valid = false; }
+    if (phone.length !== 10)               { triggerShake("eofPhone");   valid = false; }
+    if (!address)                          { triggerShake("eofAddress"); valid = false; }
+    if (!pass)                             { triggerShake("eofPass");    valid = false; }
+    if (!valid) return;
+
+    const formattedPhone = document.getElementById("eofPhoneVal").value.trim();
+    showSaving("Saving profile...");
+
+    // updateProfile saves email, phone, address, passPref, completed
+    google.script.run
+      .withSuccessHandler(() => {
+        // Also update role via saveOfficial
+        google.script.run
+          .withSuccessHandler(() => {
+            hideSaving("Profile saved!");
+            closeEditOfficialModal();
+            loadOfficialList();
+            showToast(`${_editingOfficialName} updated`);
+          })
+          .withFailureHandler(e => hideSavingError("Failed to save role"))
+          .saveOfficial({ name: _editingOfficialName, role, email, phone: formattedPhone });
+      })
+      .withFailureHandler(e => hideSavingError("Failed to save profile"))
+      .updateProfile(_editingOfficialName, { email, phone: formattedPhone, address, passPref: pass });
+  }
+
+  function delOfficial(name) {
+    showConfirm(
+      "🗑️",
+      "Delete Official?",
+      `This will permanently remove ${name} from the portal. This cannot be undone.`,
+      "Delete",
+      "btn-danger",
+      () => {
+        showSaving("Checking assignments...");
+        google.script.run
+          .withSuccessHandler(res => {
+            if (res.blocked) {
+              hideSaving();
+              // Build game list HTML
+              var gameRows = res.games.map(g =>
+                '<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f0f0f0; font-size:13px;">'
+                + '<span style="font-weight:700; color:#333;">Game #' + g.gameNum + '</span>'
+                + '<span style="color:#666;">' + g.date + '</span>'
+                + '</div>'
+              ).join('');
+              document.getElementById("confirmIcon").textContent  = "⚠️";
+              document.getElementById("confirmTitle").textContent = "Cannot Delete " + name;
+              document.getElementById("confirmMsg").innerHTML =
+                '<div style="font-size:13px; color:#555; margin-bottom:12px;">This official is assigned to <strong>' + res.games.length + ' upcoming game' + (res.games.length > 1 ? 's' : '') + '</strong>. Remove their assignments first, then delete.</div>'
+                + '<div style="background:#f8f9fa; border-radius:8px; padding:4px 12px; max-height:200px; overflow-y:auto;">'
+                + gameRows
+                + '</div>';
+              const btn = document.getElementById("confirmOkBtn");
+              btn.textContent = "OK";
+              btn.className   = "btn-primary";
+              _confirmCallback = null; // OK just closes
+              document.getElementById("confirmModal").classList.add("open");
+            } else if (res.success) {
+              hideSaving("Deleted");
+              loadOfficialList();
+            } else {
+              hideSaving();
+              showToast("Official not found.");
+            }
+          })
+          .withFailureHandler(() => { hideSaving(); showToast("Delete failed."); })
+          .deleteOfficial(name);
+      }
+    );
+  }
+
+  function delGame(id) {
+    showConfirm(
+      "🗑️",
+      "Delete Game?",
+      `Game #${id} and all its assignments and availability data will be permanently removed.`,
+      "Delete",
+      "btn-danger",
+      () => {
+        showSaving("Deleting game...");
+        google.script.run
+          .withSuccessHandler(() => { hideSaving("Game deleted"); _adminGamesLoaded = false; loadAdminGames(); })
+          .withFailureHandler(e => hideSavingError("Delete failed"))
+          .deleteGame(id);
+      }
+    );
+  }
+
+  /* --- ADMIN SECURITY SETTINGS --- */
+  // Single combined call for everything on the Settings tab
+  var _adminSettingsLoaded = false;
+  function loadAdminSettings(force) {
+    if (_adminSettingsLoaded && !force) return;
+    _adminSettingsLoaded = true;
+
+    // Show loading states
+    const label  = document.getElementById("pinStatusLabel");
+    const toggle = document.getElementById("pinToggle");
+    const cont   = document.getElementById("monthToggleList");
+    const sel    = document.getElementById("inviteOfficialSelect");
+    if (label)  label.textContent = "Loading...";
+    if (toggle) toggle.disabled = true;
+    if (cont)   cont.innerHTML = '<div class="empty-state">Loading...</div>';
+    if (sel)    sel.innerHTML  = '<option value="">Loading...</option>';
+
+    google.script.run.withSuccessHandler(function(res) {
+      // Security
+      if (toggle) {
+        toggle.checked  = res.pinRequired;
+        toggle.disabled = false;
+      }
+      if (label) label.textContent = res.pinRequired ? "PIN login is currently ON" : "PIN login is currently OFF";
+
+      // Month toggles
+      if (cont) {
+        if (!res.months || res.months.length === 0) {
+          cont.innerHTML = '<div class="empty-state">No months with scheduled games found.</div>';
+        } else {
+          cont.innerHTML = res.months.map(m => `
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--ios-sep);">
+              <div>
+                <div style="font-weight:800; font-size:14px;">${m.label}</div>
+                <div style="font-size:11px; color:#888; margin-top:2px;">
+                  ${m.gameCount} game${m.gameCount !== 1 ? 's' : ''} scheduled
+                  &nbsp;·&nbsp;
+                  <span id="mStatus_${m.monthStr}" style="font-weight:700; color:${m.isActive ? '#34C759' : '#aaa'};">
+                    ${m.isActive ? 'Open' : 'Locked'}
+                  </span>
+                </div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="mToggle_${m.monthStr}"
+                  ${m.isActive ? 'checked' : ''}
+                  onchange="updateMonthStatus('${m.monthStr}', '${m.label}', this.checked)">
+                <span class="slider"></span>
+              </label>
+            </div>`).join('');
+          const rows = cont.querySelectorAll('[style*="border-bottom"]');
+          if (rows.length) rows[rows.length - 1].style.borderBottom = 'none';
+        }
+      }
+
+      // Invite dropdown
+      if (sel) {
+        sel.innerHTML = '<option value="">-- Pick an official --</option>';
+        (res.officials || []).forEach(function(s) {
+          const email = s.email ? s.email.trim() : '';
+          sel.innerHTML += `<option value="${email}" data-name="${s.name}">${s.name}${email ? ' · ' + email : ' (no email)'}</option>`;
+        });
+      }
+    }).withFailureHandler(function(e) {
+      _adminSettingsLoaded = false; // allow retry
+      showToast("Failed to load settings: " + e.message, "error");
+    }).getAdminSettings();
+  }
+
+  // Keep legacy name working (called after PIN toggle save etc.)
+  function loadSecuritySettings() { loadAdminSettings(true); }
+
+  function runMonthDebug() {
+    const out = document.getElementById("monthDebugOut");
+    out.style.display = "block";
+    out.textContent = "Loading...";
+    google.script.run.withSuccessHandler(rows => {
+      out.textContent = rows.map(r =>
+        `Row ${r.rowNum}: raw="${r.rawValue}" type=${r.typeOf} isDate=${r.isDate}\n` +
+        `         parsed="${r.parsedLocal}" standardized="${r.standardized}" status="${r.colB}"`
+      ).join("\n\n");
+    }).withFailureHandler(e => {
+      out.textContent = "ERROR: " + e.message;
+    }).debugMonthStatus();
+  }
+
+  function loadMonthToggles() { loadAdminSettings(true); }
+
+  function updateMonthStatus(monthStr, label, isActive) {
+    const statusEl = document.getElementById(`mStatus_${monthStr}`);
+    if (statusEl) {
+      statusEl.textContent = 'Saving...';
+      statusEl.style.color = '#aaa';
+    }
+    showSaving(isActive ? `Opening ${label}...` : `Locking ${label}...`);
+
+    google.script.run
+      .withSuccessHandler(() => {
+        hideSaving(isActive ? `${label} is now open` : `${label} is now locked`);
+        if (statusEl) {
+          statusEl.textContent = isActive ? 'Open' : 'Locked';
+          statusEl.style.color  = isActive ? '#34C759' : '#aaa';
+        }
+        showToast(isActive ? `📅 ${label} opened for availability` : `🔒 ${label} locked`);
+
+        // If activating, offer to email the crew
+        if (isActive) {
+          showEmailCrewModal(label);
+        }
+      })
+      .withFailureHandler(e => {
+        hideSavingError("Failed: " + (e.message || JSON.stringify(e)));
+        showToast("Error: " + (e.message || "unknown"));
+        // Revert toggle
+        const tog = document.getElementById(`mToggle_${monthStr}`);
+        if (tog) tog.checked = !isActive;
+        if (statusEl) {
+          statusEl.textContent = !isActive ? 'Open' : 'Locked';
+          statusEl.style.color  = !isActive ? '#34C759' : '#aaa';
+        }
+      })
+      .updateMonthStatus(monthStr, isActive);
+  }
+
+  function showEmailCrewModal(monthLabel) {
+    // Fetch officials and portal URL in parallel
+    var officialsResult = null;
+    var urlResult       = null;
+
+    function tryBuild() {
+      if (officialsResult === null || urlResult === null) return;
+
+      const officials = officialsResult;
+      const portalUrl = urlResult;
+      const emails    = officials
+        .filter(o => o.email && o.email.trim() && o.role && o.role.toLowerCase() !== 'admin')
+        .map(o => o.email.trim());
+      const names     = officials
+        .filter(o => o.name && o.email && o.email.trim() && o.role && o.role.toLowerCase() !== 'admin')
+        .map(o => o.name.trim());
+
+      document.getElementById('confirmIcon').textContent  = '📧';
+      document.getElementById('confirmTitle').textContent = monthLabel + ' is Now Open';
+      document.getElementById('confirmMsg').innerHTML =
+        '<div style="font-size:13px; color:#555; margin-bottom:12px;">' +
+        monthLabel + ' has been opened. Send an email to notify the crew to submit their availability?</div>' +
+        (portalUrl ? '<div style="background:#f0f4ff; border:1px solid #c7d4f5; border-radius:8px; padding:8px 12px; margin-bottom:10px; font-size:12px; word-break:break-all;">' +
+        '<span style="font-weight:700; color:#1e3a8a;">🔗 Link included in email: </span>' +
+        '<span style="color:#555;">' + portalUrl + '</span></div>' : '') +
+        '<div style="background:#f8f9fa; border-radius:8px; padding:8px 12px;">' +
+        '<div style="font-size:11px; font-weight:700; color:#888; margin-bottom:4px;">WILL BE SENT TO (' + names.length + ' officials)</div>' +
+        '<div style="font-size:12px; color:#333; line-height:1.6;">' + names.join(', ') + '</div>' +
+        '</div>';
+
+      const okBtn       = document.getElementById('confirmOkBtn');
+      okBtn.textContent = '📧 Send Email';
+      okBtn.className   = 'btn-primary';
+      _confirmCallback  = function() {
+        showSaving('Sending emails...');
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              hideSaving('Sent to ' + res.count + ' officials!');
+              if (res.msg) showToast('⚠️ ' + res.msg); // partial failures
+            } else {
+              hideSaving();
+              showToast('❌ ' + (res.msg || 'Send failed — check Apps Script logs'));
+            }
+          })
+          .withFailureHandler(function(e) { hideSavingError('Send failed: ' + (e.message || 'unknown')); })
+          .sendAvailabilityEmail(monthLabel);
+      };
+
+      document.getElementById('confirmModal').classList.add('open');
+    }
+
+    google.script.run.withSuccessHandler(function(officials) {
+      officialsResult = officials; tryBuild();
+    }).getOfficialsDetailed();
+
+    google.script.run.withSuccessHandler(function(url) {
+      urlResult = url || ""; tryBuild();
+    }).getPortalUrl();
+  }
+
+  function confirmSeasonReset() {
+    showConfirm(
+      '⚠️',
+      'Reset for New Season?',
+      'This will permanently clear all games, assignments, availability and schedule locks. Officials and settings are kept. This cannot be undone.',
+      'Yes, Reset Season',
+      'btn-danger',
+      function() {
+        showConfirm(
+          '🔄',
+          'Are You Sure?',
+          'Last chance — all game and availability data will be wiped. A backup will be created before deletion.',
+          'Continue to Final Step',
+          'btn-danger',
+          function() {
+            showConfirm(
+              '🚨',
+              'Final Confirmation',
+              'This is your last chance to cancel. Once confirmed, the season data will be permanently erased and cannot be recovered except from the backup tabs.',
+              'Confirm Reset — I Understand',
+              'btn-danger',
+              function() {
+                showSaving('Resetting season data...');
+                google.script.run
+                  .withSuccessHandler(function(res) {
+                    if (res.success) {
+                      hideSaving('Season reset complete!');
+                      showToast('✓ Reset done — backup saved as "' + res.backupLabel + '"');
+                      loadMonthToggles();
+                    } else {
+                      hideSavingError('Reset failed: ' + (res.msg || 'unknown error'));
+                    }
+                  })
+                  .withFailureHandler(function() { hideSavingError('Reset failed'); })
+                  .resetSeason();
+              }
+            );
+          }
+        );
+      }
+    );
+  }
+
+  function loadInviteDropdown() { loadAdminSettings(true); }
+
+  function onInviteOfficialChange() {
+    const sel   = document.getElementById('inviteOfficialSelect');
+    const input = document.getElementById('inviteEmailInput');
+    const opt   = sel.options[sel.selectedIndex];
+    if (sel.value) {
+      input.value = '';
+      input.disabled = true;
+      showInvitePreview(opt.getAttribute('data-name'), sel.value);
+    } else {
+      input.disabled = false;
+      clearInvitePreview();
+    }
+  }
+
+  function onInviteEmailInput() {
+    const sel   = document.getElementById('inviteOfficialSelect');
+    const input = document.getElementById('inviteEmailInput');
+    sel.value = '';
+    if (input.value.includes('@')) {
+      showInvitePreview(null, input.value.trim());
+    } else {
+      clearInvitePreview();
+    }
+  }
+
+  function showInvitePreview(name, email) {
+    const preview = document.getElementById('invitePreview');
+    const to      = document.getElementById('invitePreviewTo');
+    const btn     = document.getElementById('sendInviteBtn');
+    if (!email || !email.includes('@')) { clearInvitePreview(); return; }
+    preview.style.display = 'block';
+    to.textContent = name ? name + ' <' + email + '>' : email;
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+
+  function clearInvitePreview() {
+    document.getElementById('invitePreview').style.display = 'none';
+    const btn = document.getElementById('sendInviteBtn');
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    const input = document.getElementById('inviteEmailInput');
+    if (input) input.disabled = false;
+  }
+
+  function sendInvite() {
+    const sel      = document.getElementById('inviteOfficialSelect');
+    const input    = document.getElementById('inviteEmailInput');
+    const opt      = sel.options[sel.selectedIndex];
+    const email    = sel.value || input.value.trim();
+    const name     = sel.value ? opt.getAttribute('data-name') : null;
+    if (!email || !email.includes('@')) return showToast('Please enter a valid email address');
+
+    showSaving('Sending invite...');
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res.success) {
+          hideSaving('Invite sent!');
+          showToast('📨 Invite sent to ' + email);
+          // Reset form
+          sel.value = '';
+          input.value = '';
+          input.disabled = false;
+          clearInvitePreview();
+        } else {
+          hideSavingError('Failed: ' + (res.msg || 'unknown error'));
+        }
+      })
+      .withFailureHandler(function() { hideSavingError('Send failed'); })
+      .sendPortalInvite(name, email);
+  }
+
+  function updatePinRequirement(isEnabled) {
+    const label = document.getElementById("pinStatusLabel");
+    label.textContent = "Saving...";
+    showSaving(isEnabled ? "Enabling PIN login..." : "Disabling PIN login...");
+
+    google.script.run
+      .withSuccessHandler(() => {
+        hideSaving(isEnabled ? "PIN login enabled" : "PIN login disabled");
+        label.textContent = isEnabled ? "PIN login is currently ON" : "PIN login is currently OFF";
+        showToast(isEnabled ? "🔒 PIN login enabled" : "🔓 PIN login disabled");
+      })
+      .withFailureHandler(e => {
+        hideSavingError("Failed to save");
+        label.textContent = "Error saving -- please try again";
+        // Revert toggle on failure
+        document.getElementById("pinToggle").checked = !isEnabled;
+      })
+      .updateSecuritySettings(isEnabled);
+  }
+
+</script>
+  <script>
+    // Register service worker for PWA (only on the real GitHub Pages host)
+    if ('serviceWorker' in navigator && location.hostname === 'matthope001-hub.github.io') {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/icedogs-portal/service-worker.js')
+          .then(function(reg) { console.log('SW registered:', reg.scope); })
+          .catch(function(err) { console.log('SW registration failed:', err); });
+      });
+    }
+  </script>
 </body>
 </html>
