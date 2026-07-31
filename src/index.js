@@ -2,9 +2,17 @@ export default {
   async fetch(request) {
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwaTRUEmRVQ4P5zUpOccWkmQa_1V4yM7DxwSCjfRo73ht2mrpYW-oH8gt38L5mmLfaj9A/exec";
     const url = new URL(request.url);
-    const target = APPS_SCRIPT_URL + url.search;
+
+    let target;
+    if (url.pathname === "/" || url.pathname === "") {
+      target = APPS_SCRIPT_URL + url.search;
+    } else {
+      target = "https://script.google.com" + url.pathname + url.search;
+    }
+
     const headers = new Headers(request.headers);
     headers.delete("host");
+
     const init = {
       method: request.method,
       headers,
@@ -13,12 +21,14 @@ export default {
     if (request.method !== "GET" && request.method !== "HEAD") {
       init.body = await request.arrayBuffer();
     }
+
     const res = await fetch(target, init);
     const newHeaders = new Headers(res.headers);
     newHeaders.delete("content-security-policy");
     newHeaders.delete("x-frame-options");
     newHeaders.delete("content-encoding");
     newHeaders.delete("content-length");
+
     return new Response(res.body, { status: res.status, headers: newHeaders });
   }
 };
