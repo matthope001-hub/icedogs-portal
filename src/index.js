@@ -1,34 +1,21 @@
 export default {
   async fetch(request) {
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwaTRUEmRVQ4P5zUpOccWkmQa_1V4yM7DxwSCjfRo73ht2mrpYW-oH8gt38L5mmLfaj9A/exec";
-    const url = new URL(request.url);
-
-    let target;
-    if (url.pathname === "/" || url.pathname === "") {
-      target = APPS_SCRIPT_URL + url.search;
-    } else {
-      target = "https://script.google.com" + url.pathname + url.search;
-    }
-
-    const headers = new Headers(request.headers);
-    headers.delete("host");
-
-    const init = {
-      method: request.method,
-      headers,
-      redirect: "follow"
-    };
-    if (request.method !== "GET" && request.method !== "HEAD") {
-      init.body = await request.arrayBuffer();
-    }
-
-    const res = await fetch(target, init);
-    const newHeaders = new Headers(res.headers);
-    newHeaders.delete("content-security-policy");
-    newHeaders.delete("x-frame-options");
-    newHeaders.delete("content-encoding");
-    newHeaders.delete("content-length");
-
-    return new Response(res.body, { status: res.status, headers: newHeaders });
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>IceDogs Portal</title>
+<style>
+  html, body { margin:0; padding:0; height:100%; overflow:hidden; }
+  iframe { border:0; width:100%; height:100vh; display:block; }
+</style>
+</head>
+<body>
+<iframe src="https://script.google.com/macros/s/AKfycbwaTRUEmRVQ4P5zUpOccWkmQa_1V4yM7DxwSCjfRo73ht2mrpYW-oH8gt38L5mmLfaj9A/exec" allow="clipboard-write"></iframe>
+</body>
+</html>`;
+    return new Response(html, {
+      headers: { "content-type": "text/html; charset=utf-8" }
+    });
   }
 };
