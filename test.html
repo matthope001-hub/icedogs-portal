@@ -67,8 +67,16 @@
     </div>
 
     <div style="display:flex; gap:8px; margin-bottom:16px;">
-      <button id="tabBtnAvail" onclick="switchAppTab('avail')" style="flex:1; height:40px; border:none; border-radius:10px; background:var(--icedogs-red); color:white; font-weight:800; font-size:12px; cursor:pointer; text-transform:uppercase;">Availability</button>
-      <button id="tabBtnMyGames" onclick="switchAppTab('myGames')" style="flex:1; height:40px; border:none; border-radius:10px; background:#e5e5e5; color:#555; font-weight:800; font-size:12px; cursor:pointer; text-transform:uppercase;">My Games</button>
+      <button id="tabBtnAvail" onclick="switchAppTab('avail')" style="flex:1; height:40px; border:none; border-radius:10px; background:var(--icedogs-red); color:white; font-weight:800; font-size:11px; cursor:pointer; text-transform:uppercase;">Avail</button>
+      <button id="tabBtnMyGames" onclick="switchAppTab('myGames')" style="flex:1; height:40px; border:none; border-radius:10px; background:#e5e5e5; color:#555; font-weight:800; font-size:11px; cursor:pointer; text-transform:uppercase;">My Games</button>
+      <button id="tabBtnCrew" onclick="switchAppTab('crew')" style="flex:1; height:40px; border:none; border-radius:10px; background:#e5e5e5; color:#555; font-weight:800; font-size:11px; cursor:pointer; text-transform:uppercase;">Crew</button>
+    </div>
+
+    <div id="appTabCrew" style="display:none;">
+      <div class="card" style="padding:0; overflow:hidden;">
+        <div style="font-weight:900; font-size:14px; padding:15px; border-bottom:1px solid var(--ios-sep);">CREW ASSIGNMENTS</div>
+        <div id="crewList"></div>
+      </div>
     </div>
 
     <div id="appTabAvail">
@@ -167,11 +175,78 @@
   function switchAppTab(tab) {
     document.getElementById('appTabAvail').style.display = tab === 'avail' ? 'block' : 'none';
     document.getElementById('appTabMyGames').style.display = tab === 'myGames' ? 'block' : 'none';
-    document.getElementById('tabBtnAvail').style.background = tab === 'avail' ? 'var(--icedogs-red)' : '#e5e5e5';
-    document.getElementById('tabBtnAvail').style.color = tab === 'avail' ? 'white' : '#555';
-    document.getElementById('tabBtnMyGames').style.background = tab === 'myGames' ? 'var(--icedogs-red)' : '#e5e5e5';
-    document.getElementById('tabBtnMyGames').style.color = tab === 'myGames' ? 'white' : '#555';
+    document.getElementById('appTabCrew').style.display = tab === 'crew' ? 'block' : 'none';
+    ['Avail', 'MyGames', 'Crew'].forEach(t => {
+      const btn = document.getElementById('tabBtn' + t);
+      const active = (t === 'Avail' && tab === 'avail') || (t === 'MyGames' && tab === 'myGames') || (t === 'Crew' && tab === 'crew');
+      btn.style.background = active ? 'var(--icedogs-red)' : '#e5e5e5';
+      btn.style.color = active ? 'white' : '#555';
+    });
     if (tab === 'myGames') loadMyGames();
+    if (tab === 'crew') loadCrew();
+  }
+
+  async function loadCrew() {
+    const cont = document.getElementById('crewList');
+    cont.innerHTML = '<div style="padding:20px; text-align:center; color:var(--muted-text); font-size:13px;">Loading...</div>';
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const { data: games } = await sb
+      .from('games')
+      .select('id, game_number, date, time, opponent_name')
+      .gte('date', todayStr)
+      .order('date')
+      .limit(10);
+
+    const gameList = games || [];
+    if (!gameList.length) { cont.innerHTML = '<div class="empty-state">No upcoming games.</div>'; return; }
+
+    const gameIds = gameList.map(g => g.id);
+    const { data: assignments } = await sb
+      .from('assignments')
+      .select('game_id, position, officials(name)')
+      .in('game_id', gameIds);
+    const { data: avail } = await sb
+      .from('availability')
+      .select('game_id, status, officials(name)')
+      .in('game_id', gameIds)
+      .eq('status', 'Available');
+
+    const rosterByGame = {};
+    (assignments || []).forEach(a => {
+      if (!a.officials) return;
+      if (!rosterByGame[a.game_id]) rosterByGame[a.game_id] = [];
+      rosterByGame[a.game_id].push({ position: a.position, name: a.officials.name });
+    });
+    const availByGame = {};
+    (avail || []).forEach(a => {
+      if (!a.officials) return;
+      if (!availByGame[a.game_id]) availByGame[a.game_id] = [];
+      availByGame[a.game_id].push(a.officials.name);
+    });
+
+    cont.innerHTML = gameList.map(g => {
+      const dateLabel = new Date(g.date + "T12:00:00").toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const roster = rosterByGame[g.id] || [];
+      const assignedNames = new Set(roster.map(r => r.name));
+      const unscheduled = (availByGame[g.id] || []).filter(n => !assignedNames.has(n));
+
+      const crewRows = roster.length
+        ? roster.map(r => '<div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--ios-sep);"><span style="font-size:10px; font-weight:900; color:var(--muted-text); text-transform:uppercase;">' + esc(r.position) + '</span><span style="font-size:12px; font-weight:700;">' + esc(r.name) + (r.name === sessionOfficial.name ? ' ★' : '') + '</span></div>').join('')
+        : '<div style="font-size:12px; color:var(--muted-text); font-style:italic; padding:6px 0;">No assignments yet.</div>';
+
+      const availChips = unscheduled.length
+        ? '<div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--ios-sep);"><div style="font-size:10px; font-weight:900; color:var(--muted-text); text-transform:uppercase; margin-bottom:6px;">Available · Not Scheduled</div><div style="display:flex; flex-wrap:wrap; gap:5px;">'
+          + unscheduled.map(n => '<span style="background:#f0fdf4; border:1px solid #86efac; color:#166534; font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px;">' + esc(n) + (n === sessionOfficial.name ? ' ★' : '') + '</span>').join('')
+          + '</div></div>'
+        : '';
+
+      return '<div style="border-bottom:1px solid var(--ios-sep); padding:12px 14px;">'
+        + '<div style="font-weight:800; font-size:13px;">vs ' + esc(g.opponent_name) + '</div>'
+        + '<div style="font-size:11px; color:var(--muted-text); margin-bottom:8px;">' + dateLabel + ' @ ' + (g.time || 'TBD') + '</div>'
+        + crewRows + availChips
+        + '</div>';
+    }).join('');
   }
 
   async function loadMyGames() {
