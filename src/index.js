@@ -1,6 +1,11 @@
 export default {
-  async fetch(request) {
-    const html = `<!DOCTYPE html>
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    // Only wrap the root path in the Apps Script iframe.
+    // Every other path (test.html, etc.) is served as a real static file.
+    if (url.pathname === "/" || url.pathname === "") {
+      const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -14,8 +19,12 @@ export default {
 <iframe src="https://script.google.com/macros/s/AKfycbwaTRUEmRVQ4P5zUpOccWkmQa_1V4yM7DxwSCjfRo73ht2mrpYW-oH8gt38L5mmLfaj9A/exec" allow="clipboard-write"></iframe>
 </body>
 </html>`;
-    return new Response(html, {
-      headers: { "content-type": "text/html; charset=utf-8" }
-    });
+      return new Response(html, {
+        headers: { "content-type": "text/html; charset=utf-8" }
+      });
+    }
+
+    // Everything else — serve the actual file from the repo (e.g. test.html)
+    return env.ASSETS.fetch(request);
   }
 };
