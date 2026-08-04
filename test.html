@@ -124,6 +124,12 @@
       </div>
 
       <div class="card">
+        <div style="font-weight:900; font-size:14px; margin-bottom:12px;">📋 SCHEDULING MATRIX</div>
+        <select id="matrixMonthSelect" onchange="loadMatrix()"><option value="">Select Month...</option></select>
+        <div id="matrixCont"></div>
+      </div>
+
+      <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <div style="font-weight:900; font-size:14px;">🏒 GAMES</div>
           <button onclick="toggleGameForm()" style="background:#333; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:11px; font-weight:800; cursor:pointer;">+ Add</button>
@@ -319,6 +325,101 @@
     loadActiveBroadcasts();
     loadGamesList();
     loadOfficialsList();
+    loadMatrixMonths();
+  }
+
+  const ALL_POSITIONS = ["CREW CHIEF", "GAME CLOCK", "OHL GAMESHEET", "PENALTY BOX (1)", "PENALTY BOX (2)",
+    "GOAL JUDGE (1)", "GOAL JUDGE (2)", "OFFICIAL SCORER", "SOG/FO COMPUTER", "SOG/FO SHEET",
+    "ONLINE COMPUTER", "PLUS/MINUS", "VIDEO TECH", "VIDEO REPLAY", "PA ANNOUNCER"];
+
+  async function loadMatrixMonths() {
+    const { data: games } = await sb.from('games').select('date').order('date');
+    const months = [...new Set((games || []).map(g => g.date.slice(0, 7)))];
+    const sel = document.getElementById('matrixMonthSelect');
+    sel.innerHTML = '<option value="">Select Month...</option>';
+    months.forEach(m => {
+      const label = new Date(m + "-01T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      sel.innerHTML += '<option value="' + m + '">' + label + '</option>';
+    });
+  }
+
+  async function loadMatrix() {
+    const month = document.getElementById('matrixMonthSelect').value;
+    const cont = document.getElementById('matrixCont');
+    if (!month) { cont.innerHTML = ''; return; }
+    cont.innerHTML = '<div style="padding:14px; text-align:center; color:var(--muted-text); font-size:12px;">Loading...</div>';
+
+    const nextMonth = new Date(month + "-01T00:00:00");
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const nextMonthStr = nextMonth.toISOString().slice(0, 10);
+
+    const { data: games } = await sb.from('games').select('id, game_number, date, time, opponent_name')
+      .gte('date', month + '-01').lt('date', nextMonthStr).order('date');
+    const gameList = games || [];
+    if (!gameList.length) { cont.innerHTML = '<div class="empty-state">No games this month.</div>'; return; }
+
+    const gameIds = gameList.map(g => g.id);
+    const { data: assignments } = await sb.from('assignments').select('game_id, position, officials(name)').in('game_id', gameIds);
+    const { data: avail } = await sb.from('availability').select('game_id, status, officials(name)').in('game_id', gameIds).eq('status', 'Available');
+    const { data: restrictions } = await sb.from('role_restrictions').select('position, officials(name)');
+
+    const restrictionMap = {};
+    (restrictions || []).forEach(r => {
+      if (!r.officials) return;
+      const pos = r.position.toUpperCase();
+      if (!restrictionMap[pos]) restrictionMap[pos] = [];
+      restrictionMap[pos].push(r.officials.name);
+    });
+
+    const assignByGame = {};
+    (assignments || []).forEach(a => {
+      if (!assignByGame[a.game_id]) assignByGame[a.game_id] = {};
+      assignByGame[a.game_id][a.position] = a.officials ? a.officials.name : '';
+    });
+    const availByGame = {};
+    (avail || []).forEach(a => {
+      if (!a.officials) return;
+      if (!availByGame[a.game_id]) availByGame[a.game_id] = [];
+      availByGame[a.game_id].push(a.officials.name);
+    });
+
+    cont.innerHTML = gameList.map(g => {
+      const dateLabel = new Date(g.date + "T12:00:00").toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const gameAssignments = assignByGame[g.id] || {};
+      const pool = (availByGame[g.id] || []).slice().sort();
+
+      const rows = ALL_POSITIONS.map(pos => {
+        const current = gameAssignments[pos] || '';
+        const isFixed = !!restrictionMap[pos];
+        const options = isFixed ? (restrictionMap[pos] || []).slice().sort() : pool.slice();
+        if (current && !options.includes(current)) options.push(current);
+        const optHtml = '<option value="">-- Vacant --</option>' + options.map(n => '<option value="' + esc(n) + '"' + (n === current ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+        return '<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--ios-sep);">'
+          + '<span style="font-size:10px; font-weight:900; color:var(--muted-text); width:110px; flex-shrink:0;">' + pos + '</span>'
+          + '<select style="width:60%; height:34px; margin:0; font-size:12px;" onchange="updateAssignment(\'' + g.id + '\', \'' + pos.replace(/'/g, "\\'") + '\', this.value, this)">' + optHtml + '</select>'
+          + '</div>';
+      }).join('');
+
+      const matrixId = 'matrix_' + g.id;
+      return '<div style="border:1px solid var(--ios-sep); border-radius:10px; margin-bottom:8px; overflow:hidden;">'
+        + '<div onclick="toggleMatrixGame(\'' + matrixId + '\')" style="padding:10px 12px; background:#fafafa; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">'
+        + '<div><div style="font-weight:800; font-size:12px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + '</div><div style="font-size:10px; color:var(--muted-text);">' + dateLabel + '</div></div>'
+        + '<span style="font-size:11px; color:var(--muted-text);">▼</span></div>'
+        + '<div id="' + matrixId + '" style="display:none; padding:8px 12px;">' + rows + '</div></div>';
+    }).join('');
+  }
+
+  function toggleMatrixGame(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+
+  async function updateAssignment(gameId, position, officialName, selectEl) {
+    const res = await callAdminAction('update_assignment', { gameId, position, officialName: officialName || null });
+    if (!res.success) {
+      alert(res.msg || 'Failed to update assignment');
+      loadMatrix();
+    }
   }
 
   // ---- Games CRUD ----
