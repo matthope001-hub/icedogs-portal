@@ -10,17 +10,45 @@
   :root {
     --icedogs-red: #C8102E; --icedogs-black: #000000; --ios-bg: #F8F8F8;
     --ios-card: #FFFFFF; --ios-green: #34C759; --ios-sep: #E5E5E5; --ios-text: #1C1C1E;
-    --std-logo-size: 40px; --muted-text: #888;
+    --std-logo-size: 40px; --icon-muted: #64748b; --icon-action: #475569;
+    --icon-danger: #94a3b8; --seg-bg: #e5e5ea; --input-bg: #ffffff;
+    --muted-text: #888; --card-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
+  body.dark-mode {
+    --ios-bg: #1C1C1E; --ios-card: #2C2C2E; --ios-sep: #3A3A3C; --ios-text: #F2F2F7;
+    --seg-bg: #3A3A3C; --input-bg: #3A3A3C; --muted-text: #A0A0A8;
+    --card-shadow: 0 2px 8px rgba(0,0,0,0.3); --icon-muted: #98989F;
+    --icon-action: #AEAEB2; --icon-danger: #6E6E73;
+  }
+  body.dark-mode .list-item, body.dark-mode input, body.dark-mode select, body.dark-mode textarea { background: var(--input-bg) !important; color: var(--ios-text) !important; border-color: var(--ios-sep) !important; }
+  body.dark-mode .card { background: var(--ios-card) !important; }
+  body.dark-mode table { color: var(--ios-text) !important; }
+  body.dark-mode th { background: #3A3A3C !important; color: var(--ios-text) !important; }
+  body.dark-mode td { border-color: var(--ios-sep) !important; }
+  body.dark-mode [style*="background:white"], body.dark-mode [style*="background: white"],
+  body.dark-mode [style*="background:#fff"], body.dark-mode [style*="background: #fff"],
+  body.dark-mode [style*="background:#FFF"], body.dark-mode [style*="background:#ffffff"],
+  body.dark-mode [style*="background: #ffffff"] { background: var(--ios-card) !important; }
+  body.dark-mode [style*="background:#f8f9fa"], body.dark-mode [style*="background: #f8f9fa"],
+  body.dark-mode [style*="background:#F8F8F8"], body.dark-mode [style*="background:#f8f8f8"],
+  body.dark-mode [style*="background:#fafafa"] { background: var(--ios-bg) !important; }
+  body.dark-mode [style*="color:#555"], body.dark-mode [style*="color: #555"],
+  body.dark-mode [style*="color:#666"], body.dark-mode [style*="color: #666"],
+  body.dark-mode [style*="color:#333"], body.dark-mode [style*="color:#374151"] { color: var(--ios-text) !important; }
+  body.dark-mode [style*="color:#888"], body.dark-mode [style*="color: #888"] { color: var(--muted-text) !important; }
+  body.dark-mode [style*="border:1px solid #ddd"], body.dark-mode [style*="border: 1px solid #ddd"],
+  body.dark-mode [style*="border:1px solid #eee"], body.dark-mode [style*="border: 1px solid #eee"] { border-color: var(--ios-sep) !important; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif; background-color: var(--ios-bg); color: var(--ios-text); margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif; background-color: var(--ios-bg); color: var(--ios-text); margin: 0; padding: 0; transition: background-color 0.2s, color 0.2s; }
+  #userStatusBar { background: var(--icedogs-black); border-bottom: 2px solid var(--icedogs-red); padding: 12px 20px; position: sticky; top: 0; z-index: 1000; color: white; }
   .main-container { padding: 16px; max-width: 450px; margin: 0 auto; }
-  .card { background: var(--ios-card); border-radius: 14px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid var(--ios-sep); }
+  .card { background: var(--ios-card); border-radius: 14px; padding: 20px; margin-bottom: 20px; box-shadow: var(--card-shadow); border: 1px solid var(--ios-sep); }
+  .list-item { display: flex; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--ios-sep); background: var(--ios-card); }
   .team-logo { width: var(--std-logo-size); height: var(--std-logo-size); object-fit: contain; flex-shrink: 0; }
   .main-portal-logo { width: 70px; height: auto; display: block; margin: 0 auto 15px auto; }
   .btn-primary { background: var(--icedogs-red); color: white; border: none; width: 100%; height: 52px; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; text-transform: uppercase; }
-  input, select { width: 100%; height: 52px; background: white; border: 2px solid var(--ios-sep); padding: 0 16px; border-radius: 12px; font-size: 16px; margin-bottom: 12px; font-family: inherit; }
-  .empty-state { padding: 30px; text-align: center; color: #888; font-style: italic; font-size: 14px; background: #fdfdfd; }
+  input, select, textarea { width: 100%; height: 52px; background: var(--input-bg); color: var(--ios-text); border: 2px solid var(--ios-sep); padding: 0 16px; border-radius: 12px; font-size: 16px; margin-bottom: 12px; font-family: inherit; }
+  .empty-state { padding: 30px; text-align: center; color: var(--muted-text); font-style: italic; font-size: 14px; }
   #timerCont { background: var(--ios-card); border: 1px solid var(--ios-sep); border-radius: 8px; padding: 8px; margin: 15px; text-align: center; }
   .timer-header { font-weight: 900; font-size: 9px; color: var(--icedogs-red); margin-bottom: 4px; letter-spacing: 0.5px; }
   .timer-grid { display: flex; justify-content: center; align-items: center; gap: 4px; }
@@ -28,8 +56,8 @@
   .timer-val { font-size: 18px; font-weight: 900; color: var(--ios-text); line-height: 1; }
   .timer-sep { font-size: 16px; font-weight: 900; color: var(--ios-sep); }
   .timer-label { font-size: 7px; font-weight: 800; color: var(--muted-text); text-transform: uppercase; margin-top: 2px; }
-  .live-badge { display: inline-flex; align-items: center; gap: 5px; background: var(--icedogs-red); color: white; font-size: 11px; font-weight: 900; padding: 6px 12px; border-radius: 20px; }
-  .list-item { display: flex; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--ios-sep); }
+  .live-badge { display: inline-flex; align-items: center; gap: 5px; background: var(--icedogs-red); color: white; font-size: 11px; font-weight: 900; padding: 6px 12px; border-radius: 20px; animation: live-pulse 1.5s infinite; }
+  @keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(200,16,46,0.4); } 70% { box-shadow: 0 0 0 6px rgba(200,16,46,0); } 100% { box-shadow: 0 0 0 0 rgba(200,16,46,0); } }
   .result-badge { font-size: 12px; font-weight: 900; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .result-W { background: #15803d; color: white; }
   .result-L { background: #991b1b; color: white; }
@@ -628,13 +656,27 @@
             + '<div style="flex:1;"><div style="font-weight:700; font-size:13px;">' + esc(a.name) + '</div>' + (a.email ? '<div style="font-size:11px; color:#888;">' + esc(a.email) + '</div>' : '') + '</div>'
             + emailBtn + '</div>';
         }).join('')
-      + '</div></div>';
+      + '</div>'
+      + '<div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--ios-card); border-radius:12px; border:1px solid var(--ios-sep); margin-top:14px;">'
+      + '<div><div style="font-weight:800; font-size:14px;">🌙 Dark Mode</div><div style="font-size:11px; color:var(--muted-text); margin-top:2px;">Switch to a darker colour scheme</div></div>'
+      + '<label class="switch"><input type="checkbox" id="darkModeToggle" ' + (document.body.classList.contains('dark-mode') ? 'checked' : '') + ' onchange="toggleDarkMode(this.checked)"><span class="slider"></span></label></div>'
+      + '</div>';
 
     cont.innerHTML = html;
   }
 
+  function toggleDarkMode(on) {
+    document.body.classList.toggle('dark-mode', on);
+    try { document.cookie = 'darkMode=' + (on ? '1' : '0') + '; path=/; max-age=31536000'; } catch (e) {}
+  }
+
+  function initDarkMode() {
+    const match = document.cookie.match(/darkMode=1/);
+    if (match) document.body.classList.add('dark-mode');
+  }
+
   function profileRow(label, value, isLast) {
-    return '<div style="display:flex; justify-content:space-between; padding:11px 14px;' + (isLast ? '' : ' border-bottom:1px solid var(--ios-sep);') + ' background:white;">'
+    return '<div style="display:flex; justify-content:space-between; padding:11px 14px;' + (isLast ? '' : ' border-bottom:1px solid var(--ios-sep);') + ' background:var(--ios-card);">'
       + '<span style="font-size:11px; font-weight:800; color:var(--muted-text); text-transform:uppercase;">' + label + '</span>'
       + '<span style="font-size:13px; font-weight:700;">' + esc(value || '--') + '</span></div>';
   }
@@ -1146,6 +1188,7 @@
   }
 
   window.onload = function() {
+    initDarkMode();
     loadPinRequired();
     loadLoginPageDataFromSupabase()
       .then(function(d) {
