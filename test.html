@@ -51,7 +51,7 @@
   // ---- Supabase config ----
   const SUPABASE_URL = "https://fcehtovermlilpvwcksl.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjZWh0b3Zlcm1saWxwdndja3NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4NTQzMDQsImV4cCI6MjEwMTQzMDMwNH0.Gllg9p2j3Bxrv1bpyNFBQMQtYQfWXDcxF9H7njyBksU";
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   let countdownTimer;
 
@@ -78,13 +78,13 @@
   }
 
   async function loadLoginPageDataFromSupabase() {
-    const { data: teams } = await supabase.from('teams').select('name, logo_url');
+    const { data: teams } = await sb.from('teams').select('name, logo_url');
     const logoMap = {};
     (teams || []).forEach(t => { if (t.name && t.logo_url) logoMap[t.name.toLowerCase()] = t.logo_url; });
     const mainLogo = logoMap['niagara'] || '';
 
     const todayStr = new Date().toISOString().slice(0, 10);
-    const { data: games } = await supabase
+    const { data: games } = await sb
       .from('games')
       .select('id, game_number, date, time, opponent_name, schedule_locked')
       .gte('date', todayStr)
@@ -96,7 +96,7 @@
 
     let rosterByGame = {};
     if (gameIds.length) {
-      const { data: assignments } = await supabase
+      const { data: assignments } = await sb
         .from('assignments')
         .select('game_id, position, officials(name)')
         .in('game_id', gameIds);
@@ -109,7 +109,7 @@
 
     let availByGame = {};
     if (gameIds.length) {
-      const { data: avail } = await supabase
+      const { data: avail } = await sb
         .from('availability')
         .select('game_id, status, officials(name)')
         .in('game_id', gameIds)
@@ -145,11 +145,11 @@
       };
     });
 
-    const { data: officials } = await supabase.from('officials').select('name').order('name');
+    const { data: officials } = await sb.from('officials').select('name').order('name');
     const officialNames = (officials || []).map(o => o.name);
 
     const nowIso = new Date().toISOString();
-    const { data: broadcasts } = await supabase
+    const { data: broadcasts } = await sb
       .from('broadcasts')
       .select('message, type, sent_at, expires_at')
       .eq('active', true)
