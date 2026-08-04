@@ -122,6 +122,40 @@
         <div style="padding:12px 14px; border-bottom:1px solid var(--ios-sep); font-weight:900; font-size:13px;">ACTIVE BROADCASTS</div>
         <div id="activeBroadcastList"></div>
       </div>
+
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div style="font-weight:900; font-size:14px;">🏒 GAMES</div>
+          <button onclick="toggleGameForm()" style="background:#333; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:11px; font-weight:800; cursor:pointer;">+ Add</button>
+        </div>
+        <div id="gameForm" style="display:none; background:var(--ios-bg); border:1px solid var(--ios-sep); border-radius:10px; padding:14px; margin-bottom:12px;">
+          <input type="hidden" id="gfId">
+          <input type="text" id="gfNumber" placeholder="Game # (e.g. 42)">
+          <input type="date" id="gfDate">
+          <input type="text" id="gfTime" placeholder="Time (e.g. 7:00 PM)">
+          <input type="text" id="gfOpponent" placeholder="Opponent">
+          <select id="gfType"><option value="(PRE)">Pre-Season</option><option value="(R)" selected>Regular Season</option><option value="(PL)">Playoffs</option></select>
+          <input type="text" id="gfPromo" placeholder="Promo (optional)">
+          <button class="btn-primary" onclick="saveGame()">Save Game</button>
+        </div>
+        <div id="gamesListCont"></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div style="font-weight:900; font-size:14px;">👥 OFFICIALS</div>
+          <button onclick="toggleOfficialForm()" style="background:#333; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:11px; font-weight:800; cursor:pointer;">+ Add</button>
+        </div>
+        <div id="officialForm" style="display:none; background:var(--ios-bg); border:1px solid var(--ios-sep); border-radius:10px; padding:14px; margin-bottom:12px;">
+          <input type="hidden" id="ofId">
+          <input type="text" id="ofName" placeholder="Full Name">
+          <input type="email" id="ofEmail" placeholder="Email">
+          <input type="tel" id="ofPhone" placeholder="Phone">
+          <select id="ofRole"><option value="Official">Official</option><option value="Admin">Admin</option></select>
+          <button class="btn-primary" onclick="saveOfficial()">Save Official</button>
+        </div>
+        <div id="officialsListCont"></div>
+      </div>
     </div>
 
     <div id="appTabProfile" style="display:none;">
@@ -283,6 +317,123 @@
     }).join('');
 
     loadActiveBroadcasts();
+    loadGamesList();
+    loadOfficialsList();
+  }
+
+  // ---- Games CRUD ----
+  function toggleGameForm(prefill) {
+    const form = document.getElementById('gameForm');
+    const show = form.style.display === 'none';
+    form.style.display = show ? 'block' : 'none';
+    if (show && prefill) {
+      document.getElementById('gfId').value = prefill.id;
+      document.getElementById('gfNumber').value = prefill.game_number;
+      document.getElementById('gfDate').value = prefill.date;
+      document.getElementById('gfTime').value = prefill.time || '';
+      document.getElementById('gfOpponent').value = prefill.opponent_name || '';
+      document.getElementById('gfType').value = prefill.type || '(R)';
+      document.getElementById('gfPromo').value = prefill.promo || '';
+    } else if (show) {
+      ['gfId','gfNumber','gfDate','gfTime','gfOpponent','gfPromo'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('gfType').value = '(R)';
+    }
+  }
+
+  async function saveGame() {
+    const id = document.getElementById('gfId').value || null;
+    const gameNumber = document.getElementById('gfNumber').value.trim();
+    const date = document.getElementById('gfDate').value;
+    const time = document.getElementById('gfTime').value.trim();
+    const opponentName = document.getElementById('gfOpponent').value.trim();
+    const type = document.getElementById('gfType').value;
+    const promo = document.getElementById('gfPromo').value.trim();
+    if (!gameNumber || !date || !opponentName) { alert('Game #, date, and opponent are required'); return; }
+    const res = await callAdminAction('save_game', { id, gameNumber, date, time, opponentName, type, promo });
+    if (res.success) {
+      toggleGameForm();
+      loadGamesList();
+    } else {
+      alert(res.msg || 'Failed to save game');
+    }
+  }
+
+  async function loadGamesList() {
+    const { data: games } = await sb.from('games').select('*').order('date');
+    const cont = document.getElementById('gamesListCont');
+    if (!games || !games.length) { cont.innerHTML = '<div class="empty-state">No games yet.</div>'; return; }
+    cont.innerHTML = games.map(g => {
+      const dateLabel = new Date(g.date + "T12:00:00").toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return '<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--ios-sep);">'
+        + '<div><div style="font-weight:700; font-size:13px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + '</div>'
+        + '<div style="font-size:11px; color:var(--muted-text);">' + dateLabel + ' @ ' + (g.time || 'TBD') + '</div></div>'
+        + '<div style="display:flex; gap:6px;">'
+        + '<button onclick=\'toggleGameForm(' + JSON.stringify(g).replace(/'/g, "&#39;") + ')\' style="background:#f1f5f9; border:none; border-radius:6px; padding:6px 10px; font-size:11px; cursor:pointer;">Edit</button>'
+        + '<button onclick="deleteGame(\'' + g.id + '\')" style="background:#fff1f2; border:none; border-radius:6px; padding:6px 10px; font-size:11px; color:#991b1b; cursor:pointer;">Delete</button>'
+        + '</div></div>';
+    }).join('');
+  }
+
+  async function deleteGame(id) {
+    if (!confirm('Delete this game? This also removes its assignments and availability records.')) return;
+    const res = await callAdminAction('delete_game', { id });
+    if (res.success) loadGamesList();
+    else alert(res.msg || 'Failed to delete');
+  }
+
+  // ---- Officials CRUD ----
+  function toggleOfficialForm(prefill) {
+    const form = document.getElementById('officialForm');
+    const show = form.style.display === 'none';
+    form.style.display = show ? 'block' : 'none';
+    if (show && prefill) {
+      document.getElementById('ofId').value = prefill.id;
+      document.getElementById('ofName').value = prefill.name;
+      document.getElementById('ofEmail').value = prefill.email || '';
+      document.getElementById('ofPhone').value = prefill.phone || '';
+      document.getElementById('ofRole').value = prefill.role || 'Official';
+    } else if (show) {
+      ['ofId','ofName','ofEmail','ofPhone'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('ofRole').value = 'Official';
+    }
+  }
+
+  async function saveOfficial() {
+    const id = document.getElementById('ofId').value || null;
+    const name = document.getElementById('ofName').value.trim();
+    const email = document.getElementById('ofEmail').value.trim();
+    const phone = document.getElementById('ofPhone').value.trim();
+    const role = document.getElementById('ofRole').value;
+    if (!name) { alert('Name is required'); return; }
+    const res = await callAdminAction('save_official', { id, name, email, phone, role });
+    if (res.success) {
+      toggleOfficialForm();
+      loadOfficialsList();
+    } else {
+      alert(res.msg || 'Failed to save official');
+    }
+  }
+
+  async function loadOfficialsList() {
+    const { data: officials } = await sb.from('officials').select('*').order('name');
+    const cont = document.getElementById('officialsListCont');
+    if (!officials || !officials.length) { cont.innerHTML = '<div class="empty-state">No officials yet.</div>'; return; }
+    cont.innerHTML = officials.map(o => {
+      return '<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--ios-sep);">'
+        + '<div><div style="font-weight:700; font-size:13px;">' + esc(o.name) + '</div>'
+        + '<div style="font-size:11px; color:var(--muted-text);">' + esc(o.role) + (o.email ? ' · ' + esc(o.email) : '') + '</div></div>'
+        + '<div style="display:flex; gap:6px;">'
+        + '<button onclick=\'toggleOfficialForm(' + JSON.stringify(o).replace(/'/g, "&#39;") + ')\' style="background:#f1f5f9; border:none; border-radius:6px; padding:6px 10px; font-size:11px; cursor:pointer;">Edit</button>'
+        + '<button onclick="deleteOfficial(\'' + o.id + '\')" style="background:#fff1f2; border:none; border-radius:6px; padding:6px 10px; font-size:11px; color:#991b1b; cursor:pointer;">Delete</button>'
+        + '</div></div>';
+    }).join('');
+  }
+
+  async function deleteOfficial(id) {
+    if (!confirm('Delete this official?')) return;
+    const res = await callAdminAction('delete_official', { id });
+    if (res.success) loadOfficialsList();
+    else alert(res.msg || 'Failed to delete');
   }
 
   async function updatePinRequirement(checked) {
