@@ -66,12 +66,26 @@
       </div>
     </div>
 
-    <div class="card">
-      <div style="font-weight:900; font-size:14px; margin-bottom:12px;">AVAILABILITY</div>
-      <select id="availMonthSelect" onchange="loadAvailGames()"><option value="">Select Month...</option></select>
-      <div id="availGameList"></div>
-      <button id="availSaveBtn" class="btn-primary" style="display:none; margin-top:16px;" onclick="submitAvailability()">Submit Schedule</button>
-      <div id="availMsg" style="display:none; font-size:12px; font-weight:700; text-align:center; margin-top:10px;"></div>
+    <div style="display:flex; gap:8px; margin-bottom:16px;">
+      <button id="tabBtnAvail" onclick="switchAppTab('avail')" style="flex:1; height:40px; border:none; border-radius:10px; background:var(--icedogs-red); color:white; font-weight:800; font-size:12px; cursor:pointer; text-transform:uppercase;">Availability</button>
+      <button id="tabBtnMyGames" onclick="switchAppTab('myGames')" style="flex:1; height:40px; border:none; border-radius:10px; background:#e5e5e5; color:#555; font-weight:800; font-size:12px; cursor:pointer; text-transform:uppercase;">My Games</button>
+    </div>
+
+    <div id="appTabAvail">
+      <div class="card">
+        <div style="font-weight:900; font-size:14px; margin-bottom:12px;">AVAILABILITY</div>
+        <select id="availMonthSelect" onchange="loadAvailGames()"><option value="">Select Month...</option></select>
+        <div id="availGameList"></div>
+        <button id="availSaveBtn" class="btn-primary" style="display:none; margin-top:16px;" onclick="submitAvailability()">Submit Schedule</button>
+        <div id="availMsg" style="display:none; font-size:12px; font-weight:700; text-align:center; margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <div id="appTabMyGames" style="display:none;">
+      <div class="card" style="padding:0; overflow:hidden;">
+        <div style="font-weight:900; font-size:14px; padding:15px; border-bottom:1px solid var(--ios-sep);">MY GAMES</div>
+        <div id="myGamesList"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -150,6 +164,60 @@
     loadAvailMonths();
   }
 
+  function switchAppTab(tab) {
+    document.getElementById('appTabAvail').style.display = tab === 'avail' ? 'block' : 'none';
+    document.getElementById('appTabMyGames').style.display = tab === 'myGames' ? 'block' : 'none';
+    document.getElementById('tabBtnAvail').style.background = tab === 'avail' ? 'var(--icedogs-red)' : '#e5e5e5';
+    document.getElementById('tabBtnAvail').style.color = tab === 'avail' ? 'white' : '#555';
+    document.getElementById('tabBtnMyGames').style.background = tab === 'myGames' ? 'var(--icedogs-red)' : '#e5e5e5';
+    document.getElementById('tabBtnMyGames').style.color = tab === 'myGames' ? 'white' : '#555';
+    if (tab === 'myGames') loadMyGames();
+  }
+
+  async function loadMyGames() {
+    const cont = document.getElementById('myGamesList');
+    cont.innerHTML = '<div style="padding:20px; text-align:center; color:var(--muted-text); font-size:13px;">Loading...</div>';
+
+    const { data: assignments } = await sb
+      .from('assignments')
+      .select('position, games(id, game_number, date, time, opponent_name)')
+      .eq('official_id', sessionOfficial.id);
+
+    const rows = (assignments || [])
+      .filter(a => a.games)
+      .map(a => ({ position: a.position, date: a.games.date, time: a.games.time, opponent: a.games.opponent_name, gameNumber: a.games.game_number }))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    if (!rows.length) {
+      cont.innerHTML = '<div class="empty-state">No games assigned yet.</div>';
+      return;
+    }
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const upcoming = rows.filter(r => r.date >= todayStr);
+    const past = rows.filter(r => r.date < todayStr);
+
+    function rowHtml(r, isPast) {
+      const dateLabel = new Date(r.date + "T12:00:00").toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      return '<div class="list-item"' + (isPast ? ' style="opacity:0.7;"' : '') + '>'
+        + '<div style="flex:1;"><div style="font-weight:700; font-size:13px;">' + (isPast ? '' : '') + 'vs ' + esc(r.opponent) + '</div>'
+        + '<div style="font-size:11px; color:var(--muted-text);">' + dateLabel + ' @ ' + (r.time || 'TBD') + '</div></div>'
+        + '<span style="background:var(--icedogs-red); color:white; font-size:10px; font-weight:900; padding:4px 10px; border-radius:20px; white-space:nowrap;">' + esc(r.position) + '</span>'
+        + '</div>';
+    }
+
+    let html = '';
+    if (upcoming.length) {
+      html += upcoming.map(r => rowHtml(r, false)).join('');
+    } else {
+      html += '<div class="empty-state">No upcoming games.</div>';
+    }
+    if (past.length) {
+      html += '<div style="padding:10px 15px; font-size:11px; font-weight:900; color:var(--muted-text); text-transform:uppercase; border-top:1px solid var(--ios-sep); border-bottom:1px solid var(--ios-sep); background:#fafafa;">Past Games</div>';
+      html += past.map(r => rowHtml(r, true)).join('');
+    }
+    cont.innerHTML = html;
+  }
   const SAVE_AVAIL_URL = "https://fcehtovermlilpvwcksl.supabase.co/functions/v1/save-availability";
   let reasonOptions = [];
   let currentMonthGames = [];
