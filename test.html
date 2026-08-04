@@ -59,10 +59,19 @@
   </div>
 
   <div id="appSection" style="display:none;">
-    <div class="card" style="text-align:center;">
-      <div style="font-size:15px; font-weight:900;">Welcome, <span id="appUserName"></span></div>
-      <div style="font-size:12px; color:var(--muted-text); margin-top:4px;">Role: <span id="appUserRole"></span></div>
-      <div style="font-size:11px; color:var(--muted-text); margin-top:12px;">Logged in successfully — full app views (Availability, My Games, etc.) coming in the next build step.</div>
+    <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div style="font-size:15px; font-weight:900;" id="appUserName"></div>
+        <div style="font-size:11px; color:var(--muted-text);">Role: <span id="appUserRole"></span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:900; font-size:14px; margin-bottom:12px;">AVAILABILITY</div>
+      <select id="availMonthSelect" onchange="loadAvailGames()"><option value="">Select Month...</option></select>
+      <div id="availGameList"></div>
+      <button id="availSaveBtn" class="btn-primary" style="display:none; margin-top:16px;" onclick="submitAvailability()">Submit Schedule</button>
+      <div id="availMsg" style="display:none; font-size:12px; font-weight:700; text-align:center; margin-top:10px;"></div>
     </div>
   </div>
 </div>
@@ -138,6 +147,125 @@
     document.getElementById("barUserName").textContent = sessionOfficial.name;
     document.getElementById("appUserName").textContent = sessionOfficial.name;
     document.getElementById("appUserRole").textContent = sessionOfficial.role;
+    loadAvailMonths();
+  }
+
+  const SAVE_AVAIL_URL = "https://fcehtovermlilpvwcksl.supabase.co/functions/v1/save-availability";
+  let reasonOptions = [];
+  let currentMonthGames = [];
+
+  async function loadAvailMonths() {
+    const { data: months } = await sb.from('month_windows').select('month, status').eq('status', 'Active').order('month');
+    const { data: reasons } = await sb.from('reasons').select('label').order('sort_order');
+    reasonOptions = (reasons || []).map(r => r.label);
+
+    const sel = document.getElementById('availMonthSelect');
+    sel.innerHTML = '<option value="">Select Month...</option>';
+    (months || []).forEach(m => {
+      const label = new Date(m.month + "T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      sel.innerHTML += '<option value="' + m.month + '">' + label + '</option>';
+    });
+  }
+
+  async function loadAvailGames() {
+    const month = document.getElementById('availMonthSelect').value;
+    const cont = document.getElementById('availGameList');
+    const saveBtn = document.getElementById('availSaveBtn');
+    document.getElementById('availMsg').style.display = 'none';
+    if (!month) { cont.innerHTML = ''; saveBtn.style.display = 'none'; return; }
+
+    cont.innerHTML = '<div style="padding:14px; text-align:center; color:var(--muted-text); font-size:12px;">Loading games...</div>';
+
+    const nextMonth = new Date(month + "T00:00:00");
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const nextMonthStr = nextMonth.toISOString().slice(0, 10);
+
+    const { data: games } = await sb
+      .from('games')
+      .select('id, game_number, date, time, opponent_name')
+      .gte('date', month)
+      .lt('date', nextMonthStr)
+      .order('date');
+
+    const { data: existing } = await sb
+      .from('availability')
+      .select('game_id, status, reason')
+      .eq('official_id', sessionOfficial.id);
+    const existingMap = {};
+    (existing || []).forEach(e => { existingMap[e.game_id] = e; });
+
+    currentMonthGames = games || [];
+
+    if (!currentMonthGames.length) {
+      cont.innerHTML = '<div class="empty-state">No games scheduled this month.</div>';
+      saveBtn.style.display = 'none';
+      return;
+    }
+
+    cont.innerHTML = currentMonthGames.map(g => {
+      const saved = existingMap[g.id];
+      const status = saved ? saved.status : 'Available';
+      const dateLabel = new Date(g.date + "T12:00:00").toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const reasonOpts = reasonOptions.map(r => '<option value="' + esc(r) + '"' + (saved && saved.reason === r ? ' selected' : '') + '>' + esc(r) + '</option>').join('');
+      return '<div class="list-item" style="flex-direction:column; align-items:stretch;" data-game-id="' + g.id + '">'
+        + '<div style="display:flex; justify-content:space-between; align-items:center; width:100%;">'
+        + '<div><div style="font-weight:700; font-size:13px;">vs ' + esc(g.opponent_name) + '</div><div style="font-size:11px; color:var(--muted-text);">' + dateLabel + ' @ ' + (g.time || 'TBD') + '</div></div>'
+        + '<select class="avail-status" style="width:140px; height:38px; margin:0;" onchange="toggleReasonVisibility(this)">'
+        + '<option value="Available"' + (status === 'Available' ? ' selected' : '') + '>Available</option>'
+        + '<option value="Not Available"' + (status === 'Not Available' ? ' selected' : '') + '>Not Available</option>'
+        + '</select></div>'
+        + '<select class="avail-reason" style="margin-top:8px; height:38px; display:' + (status === 'Not Available' ? 'block' : 'none') + ';"><option value="">-- Reason --</option>' + reasonOpts + '</select>'
+        + '</div>';
+    }).join('');
+
+    saveBtn.style.display = 'block';
+  }
+
+  function toggleReasonVisibility(sel) {
+    const row = sel.closest('.list-item');
+    const reasonSel = row.querySelector('.avail-reason');
+    reasonSel.style.display = sel.value === 'Not Available' ? 'block' : 'none';
+  }
+
+  async function submitAvailability() {
+    const month = document.getElementById('availMonthSelect').value;
+    const rows = document.querySelectorAll('#availGameList .list-item');
+    const results = [];
+    rows.forEach(row => {
+      const gameDbId = row.dataset.gameId;
+      const game = currentMonthGames.find(g => g.id === gameDbId);
+      if (!game) return;
+      const status = row.querySelector('.avail-status').value;
+      const reason = row.querySelector('.avail-reason').value;
+      results.push({ gameId: game.game_number, status, reason });
+    });
+
+    const msgEl = document.getElementById('availMsg');
+    msgEl.style.display = 'block';
+    msgEl.style.color = 'var(--muted-text)';
+    msgEl.textContent = 'Saving...';
+
+    try {
+      const res = await fetch(SAVE_AVAIL_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+        body: JSON.stringify({ token: sessionToken, month, results })
+      });
+      const data = await res.json();
+      if (data.success) {
+        msgEl.style.color = '#166534';
+        msgEl.textContent = '✓ Availability saved!';
+      } else if (data.alreadySubmitted) {
+        msgEl.style.color = '#991b1b';
+        msgEl.textContent = 'Already submitted for this month.';
+      } else {
+        msgEl.style.color = '#C8102E';
+        msgEl.textContent = data.msg || 'Save failed';
+      }
+    } catch (e) {
+      msgEl.style.color = '#C8102E';
+      msgEl.textContent = 'Network error — try again';
+    }
   }
 
   function signOut() {
