@@ -162,62 +162,84 @@
     </div>
 
     <div id="appTabAdmin" style="display:none;">
-      <div class="card">
-        <div style="font-weight:900; font-size:14px; margin-bottom:6px;">🔐 SECURITY</div>
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; background:var(--ios-bg); border-radius:10px; border:1px solid var(--ios-sep);">
-          <div style="font-weight:800; font-size:13px;">Require PIN on Login</div>
-          <label class="switch"><input type="checkbox" id="pinToggle" onchange="updatePinRequirement(this.checked)"><span class="slider"></span></label>
+      <div class="segmented-control" style="display:flex; background:var(--seg-bg); padding:4px; border-radius:14px; margin-bottom:16px;">
+        <button id="subTabBtnSked" onclick="switchAdminSubTab('sked')" style="flex:1; border:none; background:var(--icedogs-red); color:white; padding:10px 0; font-size:10px; font-weight:800; border-radius:10px; cursor:pointer; text-transform:uppercase;">Sked</button>
+        <button id="subTabBtnGames" onclick="switchAdminSubTab('games')" style="flex:1; border:none; background:none; color:#666; padding:10px 0; font-size:10px; font-weight:800; border-radius:10px; cursor:pointer; text-transform:uppercase;">Games</button>
+        <button id="subTabBtnOfficials" onclick="switchAdminSubTab('officials')" style="flex:1; border:none; background:none; color:#666; padding:10px 0; font-size:10px; font-weight:800; border-radius:10px; cursor:pointer; text-transform:uppercase;">Officials</button>
+        <button id="subTabBtnAvail" onclick="switchAdminSubTab('avail')" style="flex:1; border:none; background:none; color:#666; padding:10px 0; font-size:10px; font-weight:800; border-radius:10px; cursor:pointer; text-transform:uppercase;">Avail</button>
+        <button id="subTabBtnSettings" onclick="switchAdminSubTab('settings')" style="flex:1; border:none; background:none; color:#666; padding:10px 0; font-size:10px; font-weight:800; border-radius:10px; cursor:pointer; text-transform:uppercase;">Settings</button>
+      </div>
+
+      <div id="adminSubSked">
+        <div class="card">
+          <div style="font-weight:900; font-size:14px; margin-bottom:12px;">📋 SCHEDULING MATRIX</div>
+          <select id="matrixMonthSelect" onchange="loadMatrix()"><option value="">Select Month...</option></select>
+          <div id="matrixCont"></div>
         </div>
       </div>
 
-      <div class="card">
-        <div style="font-weight:900; font-size:14px; margin-bottom:6px;">📅 AVAILABILITY WINDOWS</div>
-        <div id="monthToggleList"></div>
-      </div>
-
-      <div class="card">
-        <div style="font-weight:900; font-size:14px; margin-bottom:6px;">📢 BROADCAST MESSAGE</div>
-        <div style="display:flex; gap:6px; margin-bottom:10px;">
-          <button onclick="setBroadcastType('reminder')" id="bTypeReminder" style="flex:1; padding:7px 0; border-radius:8px; border:2px solid #f59e0b; background:#b45309; color:white; font-size:10px; font-weight:900; cursor:pointer;">⏰ Reminder</button>
-          <button onclick="setBroadcastType('info')" id="bTypeInfo" style="flex:1; padding:7px 0; border-radius:8px; border:2px solid #60a5fa; background:#1d4ed8; color:white; font-size:10px; font-weight:900; cursor:pointer; opacity:0.45;">ℹ️ Info</button>
-          <button onclick="setBroadcastType('urgent')" id="bTypeUrgent" style="flex:1; padding:7px 0; border-radius:8px; border:2px solid #ff4060; background:#C8102E; color:white; font-size:10px; font-weight:900; cursor:pointer; opacity:0.45;">⚠️ Urgent</button>
-        </div>
-        <textarea id="broadcastText" rows="3" placeholder="Type your message..." style="width:100%; border-radius:8px; border:1px solid var(--ios-sep); padding:10px 12px; font-size:13px; font-family:inherit; resize:none; box-sizing:border-box;"></textarea>
-        <div style="display:flex; gap:8px; margin-top:8px; align-items:flex-end;">
-          <div style="flex:1;">
-            <div style="font-size:10px; font-weight:800; color:var(--muted-text); margin-bottom:4px;">Expires (optional)</div>
-            <input type="date" id="broadcastExpiry" style="width:100%; height:36px; margin:0; box-sizing:border-box;">
+      <div id="adminSubGames" style="display:none;">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="font-weight:900; font-size:14px;">🏒 GAMES</div>
+            <button onclick="openGameModal()" style="background:#333; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:11px; font-weight:800; cursor:pointer;">+ Add</button>
           </div>
-          <button onclick="sendBroadcastMsg()" style="height:36px; background:var(--icedogs-red); border:none; border-radius:8px; color:white; font-size:13px; font-weight:900; padding:0 18px; cursor:pointer;">Send →</button>
+          <div id="gamesListCont"></div>
         </div>
-        <div id="broadcastMsg" style="display:none; font-size:12px; font-weight:700; margin-top:8px;"></div>
       </div>
 
-      <div class="card" style="padding:0; overflow:hidden;">
-        <div style="padding:12px 14px; border-bottom:1px solid var(--ios-sep); font-weight:900; font-size:13px;">ACTIVE BROADCASTS</div>
-        <div id="activeBroadcastList"></div>
-      </div>
-
-      <div class="card">
-        <div style="font-weight:900; font-size:14px; margin-bottom:12px;">📋 SCHEDULING MATRIX</div>
-        <select id="matrixMonthSelect" onchange="loadMatrix()"><option value="">Select Month...</option></select>
-        <div id="matrixCont"></div>
-      </div>
-
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <div style="font-weight:900; font-size:14px;">🏒 GAMES</div>
-          <button onclick="openGameModal()" style="background:#333; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:11px; font-weight:800; cursor:pointer;">+ Add</button>
+      <div id="adminSubOfficials" style="display:none;">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="font-weight:900; font-size:14px;">👥 OFFICIALS</div>
+            <button onclick="openOfficialModal()" style="background:#333; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:11px; font-weight:800; cursor:pointer;">+ Add</button>
+          </div>
+          <div id="officialsListCont"></div>
         </div>
-        <div id="gamesListCont"></div>
       </div>
 
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <div style="font-weight:900; font-size:14px;">👥 OFFICIALS</div>
-          <button onclick="openOfficialModal()" style="background:#333; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:11px; font-weight:800; cursor:pointer;">+ Add</button>
+      <div id="adminSubAvail" style="display:none;">
+        <div class="card">
+          <div class="empty-state">Admin availability override — coming soon.</div>
         </div>
-        <div id="officialsListCont"></div>
+      </div>
+
+      <div id="adminSubSettings" style="display:none;">
+        <div class="card">
+          <div style="font-weight:900; font-size:14px; margin-bottom:6px;">🔐 SECURITY</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; background:var(--ios-bg); border-radius:10px; border:1px solid var(--ios-sep);">
+            <div style="font-weight:800; font-size:13px;">Require PIN on Login</div>
+            <label class="switch"><input type="checkbox" id="pinToggle" onchange="updatePinRequirement(this.checked)"><span class="slider"></span></label>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="font-weight:900; font-size:14px; margin-bottom:6px;">📅 AVAILABILITY WINDOWS</div>
+          <div id="monthToggleList"></div>
+        </div>
+
+        <div class="card">
+          <div style="font-weight:900; font-size:14px; margin-bottom:6px;">📢 BROADCAST MESSAGE</div>
+          <div style="display:flex; gap:6px; margin-bottom:10px;">
+            <button onclick="setBroadcastType('reminder')" id="bTypeReminder" style="flex:1; padding:7px 0; border-radius:8px; border:2px solid #f59e0b; background:#b45309; color:white; font-size:10px; font-weight:900; cursor:pointer;">⏰ Reminder</button>
+            <button onclick="setBroadcastType('info')" id="bTypeInfo" style="flex:1; padding:7px 0; border-radius:8px; border:2px solid #60a5fa; background:#1d4ed8; color:white; font-size:10px; font-weight:900; cursor:pointer; opacity:0.45;">ℹ️ Info</button>
+            <button onclick="setBroadcastType('urgent')" id="bTypeUrgent" style="flex:1; padding:7px 0; border-radius:8px; border:2px solid #ff4060; background:#C8102E; color:white; font-size:10px; font-weight:900; cursor:pointer; opacity:0.45;">⚠️ Urgent</button>
+          </div>
+          <textarea id="broadcastText" rows="3" placeholder="Type your message..." style="width:100%; border-radius:8px; border:1px solid var(--ios-sep); padding:10px 12px; font-size:13px; font-family:inherit; resize:none; box-sizing:border-box;"></textarea>
+          <div style="display:flex; gap:8px; margin-top:8px; align-items:flex-end;">
+            <div style="flex:1;">
+              <div style="font-size:10px; font-weight:800; color:var(--muted-text); margin-bottom:4px;">Expires (optional)</div>
+              <input type="date" id="broadcastExpiry" style="width:100%; height:36px; margin:0; box-sizing:border-box;">
+            </div>
+            <button onclick="sendBroadcastMsg()" style="height:36px; background:var(--icedogs-red); border:none; border-radius:8px; color:white; font-size:13px; font-weight:900; padding:0 18px; cursor:pointer;">Send →</button>
+          </div>
+          <div id="broadcastMsg" style="display:none; font-size:12px; font-weight:700; margin-top:8px;"></div>
+        </div>
+
+        <div class="card" style="padding:0; overflow:hidden;">
+          <div style="padding:12px 14px; border-bottom:1px solid var(--ios-sep); font-weight:900; font-size:13px;">ACTIVE BROADCASTS</div>
+          <div id="activeBroadcastList"></div>
+        </div>
       </div>
     </div>
 
@@ -567,6 +589,21 @@
       body: JSON.stringify({ token: sessionToken, action, payload })
     });
     return res.json();
+  }
+
+  function switchAdminSubTab(tab) {
+    document.getElementById('adminSubSked').style.display = tab === 'sked' ? 'block' : 'none';
+    document.getElementById('adminSubGames').style.display = tab === 'games' ? 'block' : 'none';
+    document.getElementById('adminSubOfficials').style.display = tab === 'officials' ? 'block' : 'none';
+    document.getElementById('adminSubAvail').style.display = tab === 'avail' ? 'block' : 'none';
+    document.getElementById('adminSubSettings').style.display = tab === 'settings' ? 'block' : 'none';
+    ['Sked', 'Games', 'Officials', 'Avail', 'Settings'].forEach(t => {
+      const btn = document.getElementById('subTabBtn' + t);
+      const key = t.toLowerCase();
+      const active = key === tab;
+      btn.style.background = active ? 'var(--icedogs-red)' : 'none';
+      btn.style.color = active ? 'white' : '#666';
+    });
   }
 
   async function loadAdmin() {
