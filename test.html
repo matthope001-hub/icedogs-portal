@@ -1066,6 +1066,8 @@
       availByGame[a.game_id].push(a.officials.name);
     });
 
+    const ALWAYS_AVAILABLE_BACKUP = ["Dave Taylor"];
+
     cont.innerHTML = gameList.map(g => {
       const dateLabel = new Date(g.date + "T12:00:00").toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       const gameAssignments = assignByGame[g.id] || {};
@@ -1080,6 +1082,11 @@
         } else {
           const qualified = skillMap[pos] || new Set();
           options = pool.filter(n => qualified.has(n));
+          ALWAYS_AVAILABLE_BACKUP.forEach(name => {
+            const alreadyBusy = gameAssignments['VIDEO REPLAY'] === name;
+            if (qualified.has(name) && !alreadyBusy && !options.includes(name)) options.push(name);
+          });
+          options.sort();
         }
         if (current && !options.includes(current)) options.push(current);
         const optHtml = '<option value="">-- Vacant --</option>' + options.map(n => '<option value="' + esc(n) + '"' + (n === current ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
@@ -1291,11 +1298,17 @@
       fixedCont.innerHTML = fixedIds2.map(id => {
         const entry = fixedByOfficial[id];
         const positionBadges = entry.positions.map(p => '<span style="font-size:10px; font-weight:900; background:#eef2ff; color:#3730a3; padding:2px 8px; border-radius:20px; margin-right:4px;">' + esc(p) + '</span>').join('');
-        return '<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--ios-sep);">'
-          + '<div><div style="font-weight:700; font-size:13px;">' + esc(entry.info.name) + '</div><div style="margin-top:4px;">' + positionBadges + '</div></div>'
+        const skillCount = (skillsByOfficial[id] || new Set()).size;
+        return '<div style="border-bottom:1px solid var(--ios-sep);">'
+          + '<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0;">'
+          + '<div><div style="font-weight:700; font-size:13px;">' + esc(entry.info.name) + '</div><div style="margin-top:4px;">' + positionBadges + '</div>'
+          + '<div style="font-size:11px; color:var(--muted-text); margin-top:4px;">Backup skills: <span id="skillCount_' + id + '">' + skillCount + '/' + SKILL_POSITIONS.length + '</span></div></div>'
           + '<div style="display:flex; gap:6px;">'
+          + '<button onclick="toggleSkillsPanel(\'' + id + '\')" style="background:#eef2ff; border:none; border-radius:6px; padding:6px 10px; font-size:11px; color:#3730a3; cursor:pointer;">Skills</button>'
           + '<button onclick="openFixedStaffModal(window._fixedByOfficial[\'' + id + '\'])" style="background:#f1f5f9; border:none; border-radius:6px; padding:6px 10px; font-size:11px; cursor:pointer;">Edit</button>'
-          + '</div></div>';
+          + '</div></div>'
+          + '<div id="skillsPanel_' + id + '" style="display:none; padding:0 0 14px;"></div>'
+          + '</div>';
       }).join('');
     }
   }
