@@ -303,6 +303,10 @@
       <input type="email" id="ofEmail" placeholder="Email">
       <input type="tel" id="ofPhone" placeholder="Phone">
       <select id="ofRole"><option value="Official">Official</option><option value="Admin">Admin</option></select>
+      <div id="ofPinWrap" style="display:none;">
+        <input type="text" id="ofPin" placeholder="PIN (4 digits)" inputmode="numeric" maxlength="4">
+        <div style="font-size:11px; color:var(--muted-text); margin-top:-8px; margin-bottom:12px;">Leave blank to keep their current PIN unchanged.</div>
+      </div>
       <button class="btn-primary" onclick="saveOfficial()">Save Official</button>
       <button onclick="closeOfficialModal()" style="margin-top:10px; width:100%; height:44px; background:var(--ios-sep); border:none; border-radius:12px; font-size:14px; font-weight:700; color:var(--ios-text); cursor:pointer;">Cancel</button>
     </div>
@@ -745,15 +749,18 @@
   // ---- Officials CRUD (modal-based) ----
   function openOfficialModal(prefill) {
     document.getElementById('officialModalTitle').textContent = prefill ? 'Edit Official' : 'Add Official';
+    document.getElementById('ofPin').value = '';
     if (prefill) {
       document.getElementById('ofId').value = prefill.id;
       document.getElementById('ofName').value = prefill.name;
       document.getElementById('ofEmail').value = prefill.email || '';
       document.getElementById('ofPhone').value = prefill.phone || '';
       document.getElementById('ofRole').value = prefill.role || 'Official';
+      document.getElementById('ofPinWrap').style.display = 'block';
     } else {
       ['ofId','ofName','ofEmail','ofPhone'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('ofRole').value = 'Official';
+      document.getElementById('ofPinWrap').style.display = 'none';
     }
     document.getElementById('officialModal').classList.add('open');
   }
@@ -765,9 +772,11 @@
     const email = document.getElementById('ofEmail').value.trim();
     const phone = document.getElementById('ofPhone').value.trim();
     const role = document.getElementById('ofRole').value;
+    const pin = document.getElementById('ofPin').value.trim();
     if (!name) { showToast('Name is required'); return; }
+    if (pin && !/^\d{4}$/.test(pin)) { showToast('PIN must be exactly 4 digits'); return; }
     showSaving('Saving official...');
-    const res = await callAdminAction('save_official', { id, name, email, phone, role });
+    const res = await callAdminAction('save_official', { id, name, email, phone, role, pin: pin || undefined });
     if (res.success) {
       hideSaving('Saved!');
       closeOfficialModal();
