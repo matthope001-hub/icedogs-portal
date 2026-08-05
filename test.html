@@ -1240,7 +1240,7 @@
 
   async function loadOfficialsList() {
     const { data: officials } = await sb.from('officials').select('*').order('name');
-    const { data: restrictions } = await sb.from('role_restrictions').select('official_id, position, officials(id, name, email, phone, role, profile_complete)');
+    const { data: restrictions } = await sb.from('role_restrictions').select('official_id, position, officials(id, name, email, phone, role, profile_complete)').in('position', ['PA ANNOUNCER', 'VIDEO REPLAY']);
     const cont = document.getElementById('officialsListCont');
     const fixedCont = document.getElementById('fixedStaffListCont');
 
