@@ -53,7 +53,8 @@
   .team-logo { width: var(--std-logo-size); height: var(--std-logo-size); object-fit: contain; flex-shrink: 0; }
   .main-portal-logo { width: 70px; height: auto; display: block; margin: 0 auto 15px auto; }
   .btn-primary { background: var(--icedogs-red); color: white; border: none; width: 100%; height: 52px; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; text-transform: uppercase; }
-  input, select, textarea { width: 100%; height: 52px; background: var(--input-bg); color: var(--ios-text); border: 2px solid var(--ios-sep); padding: 0 16px; border-radius: 12px; font-size: 16px; margin-bottom: 12px; font-family: inherit; }
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea { width: 100%; height: 52px; background: var(--input-bg); color: var(--ios-text); border: 2px solid var(--ios-sep); padding: 0 16px; border-radius: 12px; font-size: 16px; margin-bottom: 12px; font-family: inherit; }
+  input[type="checkbox"], input[type="radio"] { width: 16px; height: 16px; margin: 0; flex-shrink: 0; }
   .empty-state { padding: 30px; text-align: center; color: var(--muted-text); font-style: italic; font-size: 14px; }
   #timerCont { background: var(--ios-card); border: 1px solid var(--ios-sep); border-radius: 8px; padding: 8px; margin: 15px; text-align: center; }
   .timer-header { font-weight: 900; font-size: 9px; color: var(--icedogs-red); margin-bottom: 4px; letter-spacing: 0.5px; }
