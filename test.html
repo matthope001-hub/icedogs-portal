@@ -312,6 +312,15 @@
         <div id="myGamesList"></div>
       </div>
     </div>
+
+    <div id="appTabEditor" style="display:none;">
+      <div class="card">
+        <div style="font-weight:900; font-size:14px; margin-bottom:4px;" id="editorPositionLabel">VIDEO REPLAY SCHEDULING</div>
+        <div style="font-size:11px; color:var(--muted-text); margin-bottom:12px;">Manage assignments for this position across the season.</div>
+        <select id="editorMonthSelect" onchange="loadEditorGames()"><option value="">Select Month...</option></select>
+        <div id="editorGameList"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -328,6 +337,9 @@
     </button>
     <button class="nav-btn" id="navBtnSeason" onclick="switchAppTab('season')" title="Full Season Schedule">
       <div class="nav-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12" rx="10" ry="5"/><line x1="2" y1="12" x2="22" y2="12"/></svg></div>
+    </button>
+    <button class="nav-btn" id="navBtnEditor" onclick="switchAppTab('editor')" title="Video Replay Scheduling" style="display:none;">
+      <div class="nav-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
     </button>
     <button class="nav-btn" id="navBtnAdmin" onclick="switchAppTab('admin')" title="Admin" style="display:none;">
       <div class="nav-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
@@ -593,6 +605,9 @@
     }
   }
 
+  const EDITOR_POSITIONS_CLIENT = { "VIDEO REPLAY": ["Dave Taylor"] };
+  let sessionEditorPosition = null;
+
   function loginSuccess() {
     document.getElementById("loginSection").style.display = "none";
     document.getElementById("appSection").style.display = "block";
@@ -603,6 +618,11 @@
     document.getElementById("appUserRole").textContent = sessionOfficial.role;
     if (sessionOfficial.role === 'Admin') {
       document.getElementById('navBtnAdmin').style.display = 'flex';
+    }
+    sessionEditorPosition = Object.keys(EDITOR_POSITIONS_CLIENT).find(pos => EDITOR_POSITIONS_CLIENT[pos].includes(sessionOfficial.name)) || null;
+    if (sessionEditorPosition) {
+      document.getElementById('navBtnEditor').style.display = 'flex';
+      document.getElementById('editorPositionLabel').textContent = sessionEditorPosition + ' SCHEDULING';
     }
     switchAppTab('avail');
     loadAvailMonths();
@@ -615,7 +635,8 @@
     document.getElementById('appTabSeason').style.display = tab === 'season' ? 'block' : 'none';
     document.getElementById('appTabProfile').style.display = tab === 'profile' ? 'block' : 'none';
     document.getElementById('appTabAdmin').style.display = tab === 'admin' ? 'block' : 'none';
-    ['Avail', 'MyGames', 'Crew', 'Season', 'Admin'].forEach(t => {
+    document.getElementById('appTabEditor').style.display = tab === 'editor' ? 'block' : 'none';
+    ['Avail', 'MyGames', 'Crew', 'Season', 'Admin', 'Editor'].forEach(t => {
       const btn = document.getElementById('navBtn' + t);
       if (!btn) return;
       const key = t.charAt(0).toLowerCase() + t.slice(1);
@@ -631,6 +652,7 @@
     if (tab === 'myGames') loadMyGames();
     if (tab === 'crew') loadCrew();
     if (tab === 'season') loadSeason();
+    if (tab === 'editor') loadEditorMonths();
     if (tab === 'profile') loadProfile();
     if (tab === 'admin') loadAdmin();
   }
@@ -883,6 +905,65 @@
     "ONLINE COMPUTER", "PLUS/MINUS", "VIDEO TECH", "VIDEO REPLAY", "PA ANNOUNCER"];
   const FIXED_POSITIONS = ["PA ANNOUNCER", "VIDEO REPLAY"];
   const SKILL_POSITIONS = ALL_POSITIONS.filter(p => !FIXED_POSITIONS.includes(p));
+
+  const EDITOR_ACTION_URL = "https://fcehtovermlilpvwcksl.supabase.co/functions/v1/editor-action";
+
+  async function loadEditorMonths() {
+    const { data: games } = await sb.from('games').select('date').order('date');
+    const months = [...new Set((games || []).map(g => g.date.slice(0, 7)))];
+    const sel = document.getElementById('editorMonthSelect');
+    sel.innerHTML = '<option value="">Select Month...</option>';
+    months.forEach(m => {
+      const label = new Date(m + "-01T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      sel.innerHTML += '<option value="' + m + '-01">' + label + '</option>';
+    });
+  }
+
+  async function loadEditorGames() {
+    const month = document.getElementById('editorMonthSelect').value;
+    const cont = document.getElementById('editorGameList');
+    if (!month) { cont.innerHTML = ''; return; }
+    cont.innerHTML = '<div style="padding:14px; text-align:center; color:var(--muted-text); font-size:12px;">Loading...</div>';
+
+    const nextMonth = new Date(month + "T00:00:00");
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const nextMonthStr = nextMonth.toISOString().slice(0, 10);
+    const position = sessionEditorPosition;
+
+    const { data: games } = await sb.from('games').select('id, game_number, date, time, opponent_name')
+      .gte('date', month).lt('date', nextMonthStr).order('date');
+    const gameList = games || [];
+    if (!gameList.length) { cont.innerHTML = '<div class="empty-state">No games this month.</div>'; return; }
+
+    const gameIds = gameList.map(g => g.id);
+    const { data: assignments } = await sb.from('assignments').select('game_id, position, officials(name)').in('game_id', gameIds).eq('position', position);
+    const { data: restrictions } = await sb.from('role_restrictions').select('officials(name)').eq('position', position);
+    const pool = (restrictions || []).map(r => r.officials?.name).filter(Boolean).sort();
+
+    const assignByGame = {};
+    (assignments || []).forEach(a => { assignByGame[a.game_id] = a.officials ? a.officials.name : ''; });
+
+    cont.innerHTML = gameList.map(g => {
+      const dateLabel = new Date(g.date + "T12:00:00").toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const current = assignByGame[g.id] || '';
+      const optHtml = '<option value="">-- Vacant --</option>' + pool.map(n => '<option value="' + esc(n) + '"' + (n === current ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+      return '<div class="list-item">'
+        + '<div style="flex:1;"><div style="font-weight:700; font-size:13px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + '</div><div style="font-size:11px; color:var(--muted-text);">' + dateLabel + ' @ ' + (g.time || 'TBD') + '</div></div>'
+        + '<select style="width:150px; height:38px; margin:0; font-size:12px;" onchange="updateEditorAssignment(\'' + g.id + '\', this.value)">' + optHtml + '</select>'
+        + '</div>';
+    }).join('');
+  }
+
+  async function updateEditorAssignment(gameId, officialName) {
+    const res = await fetch(EDITOR_ACTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+      body: JSON.stringify({ token: sessionToken, gameId, position: sessionEditorPosition, officialName: officialName || null })
+    });
+    const data = await res.json();
+    if (data.success) showToast('✓ Saved');
+    else { showToast(data.msg || 'Failed to update'); loadEditorGames(); }
+  }
 
   async function loadMatrixMonths() {
     const { data: games } = await sb.from('games').select('date').order('date');
@@ -1735,11 +1816,13 @@
   function signOut() {
     sessionToken = null;
     sessionOfficial = null;
+    sessionEditorPosition = null;
     document.getElementById("loginSection").style.display = "block";
     document.getElementById("appSection").style.display = "none";
     document.getElementById("userStatusBar").style.display = "none";
     document.getElementById("bottomNav").style.display = "none";
     document.getElementById("navBtnAdmin").style.display = "none";
+    document.getElementById("navBtnEditor").style.display = "none";
     document.getElementById("userPicker").value = "";
     document.getElementById("pinArea").style.display = "none";
     document.getElementById("userPin").value = "";
