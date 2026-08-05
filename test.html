@@ -404,7 +404,9 @@
     proceedAfterProfile(user);
   }
 
-  function proceedAfterProfile(user) {
+  async function proceedAfterProfile(user) {
+    const { data } = await sb.from('app_settings').select('value').eq('key', 'pin_required').maybeSingle();
+    pinRequired = data && data.value === 'ON';
     if (pinRequired) {
       document.getElementById("pinArea").style.display = "block";
     } else {
