@@ -865,7 +865,7 @@
       return '<div style="border-bottom:1px solid var(--ios-sep);">'
         + '<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0;">'
         + '<div><div style="font-weight:700; font-size:13px;">' + esc(o.name) + '</div>'
-        + '<div style="font-size:11px; color:var(--muted-text);">' + esc(o.role) + (o.email ? ' · ' + esc(o.email) : '') + (o.profile_complete ? '' : ' · <span style="color:#f59e0b;">Incomplete</span>') + ' · ' + skillCount + '/' + SKILL_POSITIONS.length + ' skills</div></div>'
+        + '<div style="font-size:11px; color:var(--muted-text);">' + esc(o.role) + (o.email ? ' · ' + esc(o.email) : '') + (o.profile_complete ? '' : ' · <span style="color:#f59e0b;">Incomplete</span>') + ' · <span id="skillCount_' + o.id + '">' + skillCount + '/' + SKILL_POSITIONS.length + '</span> skills</div></div>'
         + '<div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;">'
         + inviteBtn
         + '<button onclick="toggleSkillsPanel(\'' + o.id + '\')" style="background:#eef2ff; border:none; border-radius:6px; padding:6px 10px; font-size:11px; color:#3730a3; cursor:pointer;">Skills</button>'
@@ -899,6 +899,9 @@
       if (!window._skillsByOfficial[officialId]) window._skillsByOfficial[officialId] = new Set();
       if (qualified) window._skillsByOfficial[officialId].add(position.toUpperCase());
       else window._skillsByOfficial[officialId].delete(position.toUpperCase());
+      const countEl = document.getElementById('skillCount_' + officialId);
+      if (countEl) countEl.textContent = window._skillsByOfficial[officialId].size + '/' + SKILL_POSITIONS.length;
+      showToast('✓ Saved');
     } else {
       showToast(res.msg || 'Failed to update skill');
     }
