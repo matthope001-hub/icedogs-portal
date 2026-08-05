@@ -359,7 +359,7 @@
     <div id="profileFormStep" class="modal-body">
       <input type="email" id="mpEmail" placeholder="Email Address" autocomplete="email">
       <input type="tel" id="mpPhone" placeholder="Phone Number" inputmode="numeric" maxlength="14" oninput="formatModalPhone(this)">
-      <input type="text" id="mpAddress" placeholder="Mailing Address">
+      <input type="text" id="mpAddress" placeholder="123 Main St, City, ON A1A 1A1" oninput="formatModalAddress(this)">
       <select id="mpPass"><option value="">-- Pass Preference --</option><option value="Digital">Digital</option><option value="Physical">Physical</option></select>
       <div id="profileFormError" style="display:none; color:#C8102E; font-size:12px; font-weight:700; margin-bottom:10px;"></div>
       <button class="btn-primary" onclick="validateProfileModal()">Review & Confirm →</button>
@@ -455,10 +455,24 @@
     input.value = fmt;
   }
 
+  const CA_POSTAL_REGEX = /([A-Za-z]\d[A-Za-z])\s?(\d[A-Za-z]\d)\s*$/;
+
+  function formatModalAddress(input) {
+    const match = input.value.match(CA_POSTAL_REGEX);
+    if (match) {
+      const formatted = (match[1] + ' ' + match[2]).toUpperCase();
+      input.value = input.value.slice(0, match.index) + formatted;
+    }
+  }
+
+  function validateAddress(address) {
+    return CA_POSTAL_REGEX.test(address);
+  }
+
   function validateProfileModal() {
     const email = document.getElementById('mpEmail').value.trim();
     const phone = document.getElementById('mpPhone').value.replace(/\D/g, '');
-    const address = document.getElementById('mpAddress').value.trim();
+    let address = document.getElementById('mpAddress').value.trim();
     const pass = document.getElementById('mpPass').value;
     const errEl = document.getElementById('profileFormError');
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -466,6 +480,10 @@
     if (!email || !emailRegex.test(email)) { errEl.textContent = 'Please enter a valid email address.'; errEl.style.display = 'block'; return; }
     if (phone.length !== 10) { errEl.textContent = 'Please enter a valid 10-digit phone number.'; errEl.style.display = 'block'; return; }
     if (!address) { errEl.textContent = 'Please enter your mailing address.'; errEl.style.display = 'block'; return; }
+    if (!validateAddress(address)) { errEl.textContent = 'Please include a valid postal code, e.g. 123 Main St, City, ON A1A 1A1'; errEl.style.display = 'block'; return; }
+    const match = address.match(CA_POSTAL_REGEX);
+    address = address.slice(0, match.index) + (match[1] + ' ' + match[2]).toUpperCase();
+    document.getElementById('mpAddress').value = address;
     if (!pass) { errEl.textContent = 'Please select a pass preference.'; errEl.style.display = 'block'; return; }
     errEl.style.display = 'none';
 
