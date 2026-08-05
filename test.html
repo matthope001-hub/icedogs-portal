@@ -779,7 +779,7 @@
     monthSel.innerHTML = '<option value="">-- Select Month --</option>';
     months.forEach(m => {
       const label = new Date(m + "-01T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      monthSel.innerHTML += '<option value="' + m + '">' + label + '</option>';
+      monthSel.innerHTML += '<option value="' + m + '-01">' + label + '</option>';
     });
     monthSel.style.display = 'block';
   }
@@ -795,12 +795,12 @@
 
     cont.innerHTML = '<div style="padding:14px; text-align:center; color:var(--muted-text); font-size:12px;">Loading...</div>';
 
-    const nextMonth = new Date(month + "-01T00:00:00");
+    const nextMonth = new Date(month + "T00:00:00");
     nextMonth.setMonth(nextMonth.getMonth() + 1);
     const nextMonthStr = nextMonth.toISOString().slice(0, 10);
 
     const { data: games } = await sb.from('games').select('id, game_number, date, time, opponent_name')
-      .gte('date', month + '-01').lt('date', nextMonthStr).order('date');
+      .gte('date', month).lt('date', nextMonthStr).order('date');
     const { data: existing } = await sb.from('availability').select('game_id, status, reason').eq('official_id', officialId);
     const existingMap = {};
     (existing || []).forEach(e => { existingMap[e.game_id] = e; });
