@@ -963,14 +963,21 @@
         const optHtml = '<option value="">-- Vacant --</option>' + options.map(n => '<option value="' + esc(n) + '"' + (n === current ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
         return '<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--ios-sep);">'
           + '<span style="font-size:10px; font-weight:900; color:var(--muted-text); width:110px; flex-shrink:0;">' + pos + '</span>'
-          + '<select style="width:60%; height:34px; margin:0; font-size:12px;" onchange="updateAssignment(\'' + g.id + '\', \'' + pos.replace(/'/g, "\\'") + '\', this.value, this)">' + optHtml + '</select>'
+          + '<select data-prev="' + esc(current) + '" style="width:60%; height:34px; margin:0; font-size:12px;" onchange="updateAssignment(\'' + g.id + '\', \'' + pos.replace(/'/g, "\\'") + '\', this.value, this)">' + optHtml + '</select>'
           + '</div>';
       }).join('');
 
       const matrixId = 'matrix_' + g.id;
+      const filledCount = ALL_POSITIONS.filter(pos => gameAssignments[pos]).length;
+      const totalPositions = ALL_POSITIONS.length;
+      const isComplete = filledCount === totalPositions;
+      const badgeColor = isComplete ? '#166534' : (filledCount === 0 ? '#991b1b' : '#92400e');
+      const badgeBg = isComplete ? '#dcfce7' : (filledCount === 0 ? '#fff1f2' : '#fff8ed');
+      const badgeHtml = '<span id="matrixBadge_' + g.id + '" style="font-size:10px; font-weight:900; padding:3px 8px; border-radius:20px; background:' + badgeBg + '; color:' + badgeColor + '; white-space:nowrap;">' + filledCount + '/' + totalPositions + '</span>';
       return '<div style="border:1px solid var(--ios-sep); border-radius:10px; margin-bottom:8px; overflow:hidden;">'
-        + '<div onclick="toggleMatrixGame(\'' + matrixId + '\')" style="padding:10px 12px; background:#fafafa; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">'
-        + '<div><div style="font-weight:800; font-size:12px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + '</div><div style="font-size:10px; color:var(--muted-text);">' + dateLabel + '</div></div>'
+        + '<div onclick="toggleMatrixGame(\'' + matrixId + '\')" style="padding:10px 12px; background:#fafafa; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px;">'
+        + '<div style="flex:1; min-width:0;"><div style="font-weight:800; font-size:12px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + '</div><div style="font-size:10px; color:var(--muted-text);">' + dateLabel + '</div></div>'
+        + badgeHtml
         + '<span style="font-size:11px; color:var(--muted-text);">▼</span></div>'
         + '<div id="' + matrixId + '" style="display:none; padding:8px 12px;">' + rows + '</div></div>';
     }).join('');
@@ -982,10 +989,25 @@
   }
 
   async function updateAssignment(gameId, position, officialName, selectEl) {
+    const prevVal = selectEl.dataset.prev || '';
     const res = await callAdminAction('update_assignment', { gameId, position, officialName: officialName || null });
     if (!res.success) {
       showToast(res.msg || 'Failed to update assignment');
       loadMatrix();
+      return;
+    }
+    selectEl.dataset.prev = officialName || '';
+    const delta = (officialName ? 1 : 0) - (prevVal ? 1 : 0);
+    if (delta !== 0) {
+      const badge = document.getElementById('matrixBadge_' + gameId);
+      if (badge) {
+        const [filled, total] = badge.textContent.split('/').map(Number);
+        const newFilled = filled + delta;
+        badge.textContent = newFilled + '/' + total;
+        const isComplete = newFilled === total;
+        badge.style.background = isComplete ? '#dcfce7' : (newFilled === 0 ? '#fff1f2' : '#fff8ed');
+        badge.style.color = isComplete ? '#166534' : (newFilled === 0 ? '#991b1b' : '#92400e');
+      }
     }
   }
 
