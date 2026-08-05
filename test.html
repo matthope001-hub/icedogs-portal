@@ -1253,7 +1253,7 @@
     });
     window._fixedByOfficial = fixedByOfficial;
 
-    const regularOfficials = officials || [];
+    const regularOfficials = (officials || []).filter(o => !fixedIds.has(o.id));
     if (!regularOfficials.length) { cont.innerHTML = '<div class="empty-state">No officials yet.</div>'; }
     window._officialsCache = officials || [];
 
