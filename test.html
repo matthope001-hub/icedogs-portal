@@ -464,7 +464,7 @@
       const res = await fetch(COMPLETE_PROFILE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
-        body: JSON.stringify({ name: pendingUser, email, phone, address, passPref })
+        body: JSON.stringify({ name: pendingUser, email, phone, address, passPref, inviteToken: pendingInviteToken })
       });
       const data = await res.json();
       if (data.success) {
@@ -783,14 +783,38 @@
     if (!officials || !officials.length) { cont.innerHTML = '<div class="empty-state">No officials yet.</div>'; return; }
     window._officialsCache = officials;
     cont.innerHTML = officials.map(o => {
+      const inviteBtn = o.email
+        ? '<button onclick="sendInviteFor(\'' + o.id + '\')" style="background:#eef2ff; border:none; border-radius:6px; padding:6px 10px; font-size:11px; color:#3730a3; cursor:pointer;">Invite</button>'
+        : '';
       return '<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--ios-sep);">'
         + '<div><div style="font-weight:700; font-size:13px;">' + esc(o.name) + '</div>'
-        + '<div style="font-size:11px; color:var(--muted-text);">' + esc(o.role) + (o.email ? ' · ' + esc(o.email) : '') + '</div></div>'
+        + '<div style="font-size:11px; color:var(--muted-text);">' + esc(o.role) + (o.email ? ' · ' + esc(o.email) : '') + (o.profile_complete ? '' : ' · <span style="color:#f59e0b;">Incomplete</span>') + '</div></div>'
         + '<div style="display:flex; gap:6px;">'
+        + inviteBtn
         + '<button onclick="openOfficialModal(window._officialsCache.find(x => x.id === \'' + o.id + '\'))" style="background:#f1f5f9; border:none; border-radius:6px; padding:6px 10px; font-size:11px; cursor:pointer;">Edit</button>'
         + '<button onclick="confirmDeleteOfficial(\'' + o.id + '\')" style="background:#fff1f2; border:none; border-radius:6px; padding:6px 10px; font-size:11px; color:#991b1b; cursor:pointer;">Delete</button>'
         + '</div></div>';
     }).join('');
+  }
+
+  const SEND_INVITE_URL = "https://fcehtovermlilpvwcksl.supabase.co/functions/v1/send-invite";
+
+  async function sendInviteFor(id) {
+    const official = window._officialsCache.find(x => x.id === id);
+    if (!official || !official.email) { showToast('This official needs an email on file first'); return; }
+    showSaving('Sending invite...');
+    try {
+      const res = await fetch(SEND_INVITE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+        body: JSON.stringify({ token: sessionToken, officialName: official.name, email: official.email })
+      });
+      const data = await res.json();
+      if (data.success) hideSaving('Invite sent!');
+      else hideSavingError(data.msg || 'Failed to send invite');
+    } catch (e) {
+      hideSavingError('Network error — try again');
+    }
   }
 
   function confirmDeleteOfficial(id) {
@@ -1478,9 +1502,35 @@
     countdownTimer = setInterval(update, 1000);
   }
 
+  let pendingInviteToken = null;
+
+  async function checkForInviteLink() {
+    const params = new URLSearchParams(window.location.search);
+    const invite = params.get('invite');
+    if (!invite) return;
+
+    const { data: tokenRow } = await sb.from('profile_tokens').select('official_name, used_at').eq('token', invite).maybeSingle();
+    if (!tokenRow) { showToast('This invite link is invalid.'); return; }
+    if (tokenRow.used_at) { showToast('This invite link has already been used.'); return; }
+
+    pendingInviteToken = invite;
+    pendingUser = tokenRow.official_name;
+
+    const { data: official } = await sb.from('officials').select('email, phone, address, pass_pref').eq('name', tokenRow.official_name).maybeSingle();
+    document.getElementById('mpEmail').value = (official && official.email) || '';
+    document.getElementById('mpPhone').value = (official && official.phone) ? formatPhoneDisplay(official.phone) : '';
+    document.getElementById('mpAddress').value = (official && official.address) || '';
+    document.getElementById('mpPass').value = (official && official.pass_pref) || '';
+    document.getElementById('profileFormStep').style.display = 'block';
+    document.getElementById('profileConfirmStep').style.display = 'none';
+    document.getElementById('profileFormError').style.display = 'none';
+    document.getElementById('profileModal').classList.add('open');
+  }
+
   window.onload = function() {
     initDarkMode();
     loadPinRequired();
+    checkForInviteLink();
     loadLoginPageDataFromSupabase()
       .then(function(d) {
         renderPublicDashboard(d.dashboard);
