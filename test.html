@@ -198,6 +198,15 @@
           </div>
           <div id="officialsListCont"></div>
         </div>
+
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div style="font-weight:900; font-size:14px;">🎙️ PA ANNOUNCER / VIDEO REPLAY STAFF</div>
+            <button onclick="openFixedStaffModal()" style="background:#333; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:11px; font-weight:800; cursor:pointer;">+ Add</button>
+          </div>
+          <p style="font-size:11px; color:var(--muted-text); margin:0 0 12px 0;">These people work directly with the team for these two fixed roles and are kept separate from the general Officials roster.</p>
+          <div id="fixedStaffListCont"></div>
+        </div>
       </div>
 
       <div id="adminSubAvail" style="display:none;">
@@ -392,6 +401,27 @@
       </div>
       <button class="btn-primary" onclick="saveOfficial()">Save Official</button>
       <button onclick="closeOfficialModal()" style="margin-top:10px; width:100%; height:44px; background:var(--ios-sep); border:none; border-radius:12px; font-size:14px; font-weight:700; color:var(--ios-text); cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="fixedStaffModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header"><h2 id="fixedStaffModalTitle">Add Fixed Staff</h2></div>
+    <div class="modal-body">
+      <input type="hidden" id="fsOfficialId">
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; margin-bottom:10px;">
+        <input type="checkbox" id="fsUseExisting" onchange="toggleFsSource(this.checked)"> Assign an existing official instead
+      </label>
+      <select id="fsExistingSelect" style="display:none;" onchange="fsExistingChanged()"><option value="">-- Select Official --</option></select>
+      <input type="text" id="fsName" placeholder="Full Name">
+      <input type="email" id="fsEmail" placeholder="Email (optional)">
+      <input type="tel" id="fsPhone" placeholder="Phone (optional)">
+      <div style="font-size:11px; font-weight:800; color:var(--muted-text); text-transform:uppercase; margin:12px 0 6px;">Position</div>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:6px;"><input type="checkbox" id="fsPaAnnouncer"> PA Announcer</label>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:12px;"><input type="checkbox" id="fsVideoReplay"> Video Replay</label>
+      <button class="btn-primary" onclick="saveFixedStaff()">Save</button>
+      <button onclick="closeFixedStaffModal()" style="margin-top:10px; width:100%; height:44px; background:var(--ios-sep); border:none; border-radius:12px; font-size:14px; font-weight:700; color:var(--ios-text); cursor:pointer;">Cancel</button>
     </div>
   </div>
 </div>
@@ -1210,9 +1240,22 @@
 
   async function loadOfficialsList() {
     const { data: officials } = await sb.from('officials').select('*').order('name');
+    const { data: restrictions } = await sb.from('role_restrictions').select('official_id, position, officials(id, name, email, phone, role, profile_complete)');
     const cont = document.getElementById('officialsListCont');
-    if (!officials || !officials.length) { cont.innerHTML = '<div class="empty-state">No officials yet.</div>'; return; }
-    window._officialsCache = officials;
+    const fixedCont = document.getElementById('fixedStaffListCont');
+
+    const fixedIds = new Set((restrictions || []).map(r => r.official_id));
+    const fixedByOfficial = {};
+    (restrictions || []).forEach(r => {
+      if (!r.officials) return;
+      if (!fixedByOfficial[r.official_id]) fixedByOfficial[r.official_id] = { info: r.officials, positions: [] };
+      fixedByOfficial[r.official_id].positions.push(r.position);
+    });
+    window._fixedByOfficial = fixedByOfficial;
+
+    const regularOfficials = (officials || []).filter(o => !fixedIds.has(o.id));
+    if (!regularOfficials.length) { cont.innerHTML = '<div class="empty-state">No officials yet.</div>'; }
+    window._officialsCache = officials || [];
 
     const { data: skills } = await sb.from('official_skills').select('official_id, position');
     const skillsByOfficial = {};
@@ -1222,7 +1265,7 @@
     });
     window._skillsByOfficial = skillsByOfficial;
 
-    cont.innerHTML = officials.map(o => {
+    cont.innerHTML = regularOfficials.map(o => {
       const inviteBtn = o.email
         ? '<button onclick="sendInviteFor(\'' + o.id + '\')" style="background:#eef2ff; border:none; border-radius:6px; padding:6px 10px; font-size:11px; color:#3730a3; cursor:pointer;">Invite</button>'
         : '';
@@ -1240,6 +1283,110 @@
         + '<div id="skillsPanel_' + o.id + '" style="display:none; padding:0 0 14px;"></div>'
         + '</div>';
     }).join('');
+
+    const fixedIds2 = Object.keys(fixedByOfficial);
+    if (!fixedIds2.length) {
+      fixedCont.innerHTML = '<div class="empty-state">No fixed staff assigned yet.</div>';
+    } else {
+      fixedCont.innerHTML = fixedIds2.map(id => {
+        const entry = fixedByOfficial[id];
+        const positionBadges = entry.positions.map(p => '<span style="font-size:10px; font-weight:900; background:#eef2ff; color:#3730a3; padding:2px 8px; border-radius:20px; margin-right:4px;">' + esc(p) + '</span>').join('');
+        return '<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--ios-sep);">'
+          + '<div><div style="font-weight:700; font-size:13px;">' + esc(entry.info.name) + '</div><div style="margin-top:4px;">' + positionBadges + '</div></div>'
+          + '<div style="display:flex; gap:6px;">'
+          + '<button onclick="openFixedStaffModal(window._fixedByOfficial[\'' + id + '\'])" style="background:#f1f5f9; border:none; border-radius:6px; padding:6px 10px; font-size:11px; cursor:pointer;">Edit</button>'
+          + '</div></div>';
+      }).join('');
+    }
+  }
+
+  // ---- Fixed Staff (PA Announcer / Video Replay) modal ----
+  function openFixedStaffModal(existingEntry) {
+    document.getElementById('fixedStaffModalTitle').textContent = existingEntry ? 'Edit Fixed Staff' : 'Add Fixed Staff';
+    document.getElementById('fsUseExisting').checked = false;
+    document.getElementById('fsUseExisting').style.display = existingEntry ? 'none' : 'flex';
+    document.getElementById('fsExistingSelect').style.display = 'none';
+    document.getElementById('fsName').style.display = 'block';
+    document.getElementById('fsEmail').style.display = 'block';
+    document.getElementById('fsPhone').style.display = 'block';
+
+    if (existingEntry) {
+      document.getElementById('fsOfficialId').value = existingEntry.info.id;
+      document.getElementById('fsName').value = existingEntry.info.name;
+      document.getElementById('fsEmail').value = existingEntry.info.email || '';
+      document.getElementById('fsPhone').value = existingEntry.info.phone || '';
+      document.getElementById('fsPaAnnouncer').checked = existingEntry.positions.includes('PA ANNOUNCER');
+      document.getElementById('fsVideoReplay').checked = existingEntry.positions.includes('VIDEO REPLAY');
+    } else {
+      document.getElementById('fsOfficialId').value = '';
+      document.getElementById('fsName').value = '';
+      document.getElementById('fsEmail').value = '';
+      document.getElementById('fsPhone').value = '';
+      document.getElementById('fsPaAnnouncer').checked = false;
+      document.getElementById('fsVideoReplay').checked = false;
+      populateFsExistingDropdown();
+    }
+    document.getElementById('fixedStaffModal').classList.add('open');
+  }
+
+  function closeFixedStaffModal() { document.getElementById('fixedStaffModal').classList.remove('open'); }
+
+  function populateFsExistingDropdown() {
+    const sel = document.getElementById('fsExistingSelect');
+    sel.innerHTML = '<option value="">-- Select Official --</option>';
+    (window._officialsCache || []).forEach(o => { sel.innerHTML += '<option value="' + o.id + '">' + esc(o.name) + '</option>'; });
+  }
+
+  function toggleFsSource(useExisting) {
+    document.getElementById('fsExistingSelect').style.display = useExisting ? 'block' : 'none';
+    document.getElementById('fsName').style.display = useExisting ? 'none' : 'block';
+    document.getElementById('fsEmail').style.display = useExisting ? 'none' : 'block';
+    document.getElementById('fsPhone').style.display = useExisting ? 'none' : 'block';
+    document.getElementById('fsOfficialId').value = '';
+  }
+
+  function fsExistingChanged() {
+    const id = document.getElementById('fsExistingSelect').value;
+    document.getElementById('fsOfficialId').value = id;
+  }
+
+  async function saveFixedStaff() {
+    const useExisting = document.getElementById('fsUseExisting').checked;
+    let officialId = document.getElementById('fsOfficialId').value;
+    const paAnnouncer = document.getElementById('fsPaAnnouncer').checked;
+    const videoReplay = document.getElementById('fsVideoReplay').checked;
+
+    if (!paAnnouncer && !videoReplay) { showToast('Select at least one position'); return; }
+
+    showSaving('Saving...');
+
+    if (!useExisting && !officialId) {
+      const name = document.getElementById('fsName').value.trim();
+      const email = document.getElementById('fsEmail').value.trim();
+      const phone = document.getElementById('fsPhone').value.trim();
+      if (!name) { hideSavingError('Name is required'); return; }
+      const res = await callAdminAction('save_official', { id: null, name, email, phone, role: 'Official' });
+      if (!res.success) { hideSavingError(res.msg || 'Failed to save official'); return; }
+      const { data: created } = await sb.from('officials').select('id').eq('name', name).maybeSingle();
+      officialId = created?.id;
+    } else if (useExisting && !officialId) {
+      hideSavingError('Select an official first');
+      return;
+    }
+
+    if (!officialId) { hideSavingError('Could not determine official'); return; }
+
+    // Reconcile role_restrictions: remove both, re-add only checked ones
+    const paRes = await callAdminAction('toggle_fixed_role', { officialId, position: 'PA ANNOUNCER', assigned: paAnnouncer });
+    const vrRes = await callAdminAction('toggle_fixed_role', { officialId, position: 'VIDEO REPLAY', assigned: videoReplay });
+
+    if (paRes.success && vrRes.success) {
+      hideSaving('Saved!');
+      closeFixedStaffModal();
+      loadOfficialsList();
+    } else {
+      hideSavingError(paRes.msg || vrRes.msg || 'Failed to save');
+    }
   }
 
   function toggleSkillsPanel(officialId) {
