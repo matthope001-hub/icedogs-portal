@@ -278,6 +278,17 @@
           <div style="padding:12px 14px; border-bottom:1px solid var(--ios-sep); font-weight:900; font-size:13px;">ACTIVE BROADCASTS</div>
           <div id="activeBroadcastList"></div>
         </div>
+
+        <div class="card" style="border:2px solid #fecaca;">
+          <div style="font-weight:900; font-size:15px; margin-bottom:6px; color:#991b1b;">⚠️ SEASON RESET</div>
+          <p style="font-size:12px; color:var(--muted-text); margin:0 0 14px 0;">Each option below is independent — wipe only what you need. A backup snapshot is saved before every wipe.</p>
+
+          <button onclick="confirmWipeGames()" style="width:100%; height:44px; background:#dc2626; border:none; border-radius:10px; color:white; font-size:13px; font-weight:900; cursor:pointer; margin-bottom:8px;">Wipe Games (+ Assignments &amp; Availability)</button>
+          <button onclick="confirmWipeAssignments()" style="width:100%; height:44px; background:#ea580c; border:none; border-radius:10px; color:white; font-size:13px; font-weight:900; cursor:pointer; margin-bottom:8px;">Wipe Assignments Only</button>
+          <button onclick="confirmWipeAvailability()" style="width:100%; height:44px; background:#d97706; border:none; border-radius:10px; color:white; font-size:13px; font-weight:900; cursor:pointer;">Wipe Availability Only</button>
+
+          <div style="margin-top:14px; padding:10px 12px; background:#f0fdf4; border:1px solid #86efac; border-radius:8px; font-size:11px; color:#166534;">Officials, teams, skills, and settings are never touched by these — only the data listed above.</div>
+        </div>
       </div>
     </div>
 
@@ -1350,6 +1361,33 @@
       const res = await callAdminAction('deactivate_broadcast', { id });
       if (res.success) { hideSaving('Removed'); loadActiveBroadcasts(); }
       else hideSavingError(res.msg || 'Failed to remove');
+    });
+  }
+
+  function confirmWipeGames() {
+    showConfirm('Wipe Games?', 'This also removes every assignment and availability record tied to those games. A backup snapshot is saved first. This cannot be undone from the app.', async () => {
+      showSaving('Wiping games...');
+      const res = await callAdminAction('wipe_games', {});
+      if (res.success) { hideSaving('Wiped'); loadGamesList(); loadMatrixMonths(); document.getElementById('matrixCont').innerHTML = ''; }
+      else hideSavingError(res.msg || 'Failed to wipe');
+    });
+  }
+
+  function confirmWipeAssignments() {
+    showConfirm('Wipe Assignments?', 'Every official will be unassigned from every game. Games and availability are untouched. A backup snapshot is saved first.', async () => {
+      showSaving('Wiping assignments...');
+      const res = await callAdminAction('wipe_assignments', {});
+      if (res.success) { hideSaving('Wiped'); document.getElementById('matrixCont').innerHTML = ''; }
+      else hideSavingError(res.msg || 'Failed to wipe');
+    });
+  }
+
+  function confirmWipeAvailability() {
+    showConfirm('Wipe Availability?', 'Every official\'s submitted availability will be cleared. Games and assignments are untouched. A backup snapshot is saved first.', async () => {
+      showSaving('Wiping availability...');
+      const res = await callAdminAction('wipe_availability', {});
+      if (res.success) hideSaving('Wiped');
+      else hideSavingError(res.msg || 'Failed to wipe');
     });
   }
 
