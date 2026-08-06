@@ -1741,9 +1741,51 @@
       + '<div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--ios-card); border-radius:12px; border:1px solid var(--ios-sep); margin-top:14px;">'
       + '<div><div style="font-weight:800; font-size:14px;">🌙 Dark Mode</div><div style="font-size:11px; color:var(--muted-text); margin-top:2px;">Switch to a darker colour scheme</div></div>'
       + '<label class="switch"><input type="checkbox" id="darkModeToggle" ' + (document.body.classList.contains('dark-mode') ? 'checked' : '') + ' onchange="toggleDarkMode(this.checked)"><span class="slider"></span></label></div>'
+      + '</div>'
+      + '<div id="homeScreenCard" style="display:none; padding:14px 16px; background:var(--ios-card); border-radius:12px; border:1px solid var(--ios-sep); margin-top:14px;">'
+      + '<div style="font-weight:800; font-size:14px; margin-bottom:2px;">📱 Add to Home Screen</div>'
+      + '<div id="homeScreenBody"></div>'
       + '</div>';
 
     cont.innerHTML = html;
+    setupHomeScreenCard();
+  }
+
+  let deferredInstallPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+  });
+
+  function setupHomeScreenCard() {
+    const card = document.getElementById('homeScreenCard');
+    const body = document.getElementById('homeScreenBody');
+    if (!card || !body) return;
+
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (isStandalone) return; // already installed, don't show
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    card.style.display = 'block';
+    if (deferredInstallPrompt) {
+      body.innerHTML = '<div style="font-size:11px; color:var(--muted-text); margin-bottom:10px;">Get one-tap access from your home screen.</div>'
+        + '<button onclick="triggerInstallPrompt()" style="width:100%; height:44px; background:var(--icedogs-red); border:none; border-radius:10px; color:white; font-size:13px; font-weight:800; cursor:pointer;">Add to Home Screen</button>';
+    } else if (isIOS) {
+      body.innerHTML = '<div style="font-size:12px; color:var(--muted-text); line-height:1.6; margin-top:6px;">Tap the <strong>Share</strong> icon <span style="font-size:14px;">⬆️</span> in Safari\'s toolbar, then choose <strong>"Add to Home Screen."</strong></div>';
+    } else {
+      card.style.display = 'none';
+    }
+  }
+
+  async function triggerInstallPrompt() {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    if (choice.outcome === 'accepted') {
+      document.getElementById('homeScreenCard').style.display = 'none';
+    }
   }
 
   const CHANGE_PIN_URL = "https://fcehtovermlilpvwcksl.supabase.co/functions/v1/change-pin";
