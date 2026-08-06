@@ -402,6 +402,12 @@
       <input type="hidden" id="gfId">
       <input type="text" id="gfNumber" placeholder="Game # (e.g. 42)">
       <input type="date" id="gfDate">
+      <div style="display:flex; gap:6px; margin-bottom:8px;">
+        <button type="button" onclick="setGameTime('19:00')" style="flex:1; height:36px; background:var(--ios-bg); border:1px solid var(--ios-sep); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">7:00 PM</button>
+        <button type="button" onclick="setGameTime('14:00')" style="flex:1; height:36px; background:var(--ios-bg); border:1px solid var(--ios-sep); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">2:00 PM</button>
+        <button type="button" onclick="setGameTime('16:00')" style="flex:1; height:36px; background:var(--ios-bg); border:1px solid var(--ios-sep); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">4:00 PM</button>
+        <button type="button" onclick="setGameTime('18:00')" style="flex:1; height:36px; background:var(--ios-bg); border:1px solid var(--ios-sep); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">6:00 PM</button>
+      </div>
       <input type="time" id="gfTime">
       <input type="text" id="gfOpponent" placeholder="Opponent">
       <select id="gfType"><option value="(PRE)">Pre-Season</option><option value="(R)" selected>Regular Season</option><option value="(PL)">Playoffs</option></select>
@@ -1223,6 +1229,10 @@
   }
 
   // ---- Games CRUD (modal-based) ----
+  function setGameTime(value) {
+    document.getElementById('gfTime').value = value;
+  }
+
   function timeTo24h(str) {
     if (!str) return '';
     const match = str.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
