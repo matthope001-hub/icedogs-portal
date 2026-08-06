@@ -804,6 +804,8 @@
 
     const { data: officials } = await sb.from('officials').select('id, name').order('name');
     const { data: assignments } = await sb.from('assignments').select('official_id, games(date)');
+    const { data: fixedStaff } = await sb.from('role_restrictions').select('official_id').in('position', ['PA ANNOUNCER', 'VIDEO REPLAY']);
+    const fixedStaffIds = new Set((fixedStaff || []).map(r => r.official_id));
 
     const counts = {};
     (officials || []).forEach(o => { counts[o.id] = 0; });
@@ -815,6 +817,7 @@
     });
 
     const rows = (officials || [])
+      .filter(o => !fixedStaffIds.has(o.id))
       .map(o => ({ name: o.name, count: counts[o.id] || 0 }))
       .sort((a, b) => b.count - a.count);
 
