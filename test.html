@@ -403,12 +403,12 @@
       <input type="text" id="gfNumber" placeholder="Game # (e.g. 42)">
       <input type="date" id="gfDate">
       <div style="display:flex; gap:6px; margin-bottom:8px;">
-        <button type="button" onclick="setGameTime('19:00')" style="flex:1; height:36px; background:var(--ios-card); color:var(--ios-text); border:1px solid var(--ios-sep); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">7:00 PM</button>
-        <button type="button" onclick="setGameTime('14:00')" style="flex:1; height:36px; background:var(--ios-card); color:var(--ios-text); border:1px solid var(--ios-sep); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">2:00 PM</button>
-        <button type="button" onclick="setGameTime('16:00')" style="flex:1; height:36px; background:var(--ios-card); color:var(--ios-text); border:1px solid var(--ios-sep); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">4:00 PM</button>
-        <button type="button" onclick="setGameTime('18:00')" style="flex:1; height:36px; background:var(--ios-card); color:var(--ios-text); border:1px solid var(--ios-sep); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">6:00 PM</button>
+        <button type="button" id="qpTime1900" onclick="setGameTime('19:00')" style="flex:1; height:36px; background:var(--ios-card); color:var(--ios-text); border:1px solid var(--ios-sep); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">7:00 PM</button>
+        <button type="button" id="qpTime1400" onclick="setGameTime('14:00')" style="flex:1; height:36px; background:var(--ios-card); color:var(--ios-text); border:1px solid var(--ios-sep); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">2:00 PM</button>
+        <button type="button" id="qpTime1600" onclick="setGameTime('16:00')" style="flex:1; height:36px; background:var(--ios-card); color:var(--ios-text); border:1px solid var(--ios-sep); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">4:00 PM</button>
+        <button type="button" id="qpTime1800" onclick="setGameTime('18:00')" style="flex:1; height:36px; background:var(--ios-card); color:var(--ios-text); border:1px solid var(--ios-sep); border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">6:00 PM</button>
       </div>
-      <input type="time" id="gfTime">
+      <input type="time" id="gfTime" oninput="highlightQuickPick(this.value)">
       <input type="text" id="gfOpponent" placeholder="Opponent">
       <select id="gfType"><option value="(PRE)">Pre-Season</option><option value="(R)" selected>Regular Season</option><option value="(PL)">Playoffs</option></select>
       <input type="text" id="gfPromo" placeholder="Promo (optional)">
@@ -1229,8 +1229,22 @@
   }
 
   // ---- Games CRUD (modal-based) ----
+  const QUICK_PICK_TIMES = ['19:00', '14:00', '16:00', '18:00'];
+
   function setGameTime(value) {
     document.getElementById('gfTime').value = value;
+    highlightQuickPick(value);
+  }
+
+  function highlightQuickPick(value) {
+    QUICK_PICK_TIMES.forEach(t => {
+      const btn = document.getElementById('qpTime' + t.replace(':', ''));
+      if (!btn) return;
+      const active = t === value;
+      btn.style.background = active ? 'var(--icedogs-red)' : 'var(--ios-card)';
+      btn.style.color = active ? 'white' : 'var(--ios-text)';
+      btn.style.borderColor = active ? 'var(--icedogs-red)' : 'var(--ios-sep)';
+    });
   }
 
   function timeTo24h(str) {
@@ -1260,13 +1274,16 @@
       document.getElementById('gfId').value = prefill.id;
       document.getElementById('gfNumber').value = prefill.game_number;
       document.getElementById('gfDate').value = prefill.date;
-      document.getElementById('gfTime').value = timeTo24h(prefill.time || '');
+      const time24 = timeTo24h(prefill.time || '');
+      document.getElementById('gfTime').value = time24;
+      highlightQuickPick(time24);
       document.getElementById('gfOpponent').value = prefill.opponent_name || '';
       document.getElementById('gfType').value = prefill.type || '(R)';
       document.getElementById('gfPromo').value = prefill.promo || '';
     } else {
       ['gfId','gfNumber','gfDate','gfTime','gfOpponent','gfPromo'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('gfType').value = '(R)';
+      highlightQuickPick('');
     }
     document.getElementById('gameModal').classList.add('open');
   }
