@@ -188,6 +188,23 @@
           </div>
           <div id="gamesListCont"></div>
         </div>
+
+        <div class="card" style="padding:0; overflow:hidden;">
+          <div onclick="toggleTeamsAccordion()" style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; cursor:pointer;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="font-size:16px;">🏒</span>
+              <div>
+                <div style="font-weight:900; font-size:14px;">TEAMS</div>
+                <div style="font-size:11px; color:var(--muted-text); margin-top:1px;">Manage opponent teams and logos</div>
+              </div>
+            </div>
+            <span id="teamsAccordionChevron" style="font-size:11px; color:var(--muted-text);">▼</span>
+          </div>
+          <div id="teamsAccordionBody" style="display:none; border-top:1px solid var(--ios-sep); padding:14px 16px;">
+            <button onclick="openTeamModal()" style="background:#333; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:11px; font-weight:800; cursor:pointer; margin-bottom:12px;">+ Add Team</button>
+            <div id="teamsListCont"></div>
+          </div>
+        </div>
       </div>
 
       <div id="adminSubOfficials" style="display:none;">
@@ -422,6 +439,19 @@
       <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:12px;"><input type="checkbox" id="fsVideoReplay"> Video Replay</label>
       <button class="btn-primary" onclick="saveFixedStaff()">Save</button>
       <button onclick="closeFixedStaffModal()" style="margin-top:10px; width:100%; height:44px; background:var(--ios-sep); border:none; border-radius:12px; font-size:14px; font-weight:700; color:var(--ios-text); cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="teamModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header"><h2 id="teamModalTitle">Add Team</h2></div>
+    <div class="modal-body">
+      <input type="hidden" id="tmId">
+      <input type="text" id="tmName" placeholder="Team Name (e.g. Oshawa)">
+      <input type="text" id="tmLogoUrl" placeholder="Logo URL (optional)">
+      <button class="btn-primary" onclick="saveTeam()">Save Team</button>
+      <button onclick="closeTeamModal()" style="margin-top:10px; width:100%; height:44px; background:var(--ios-sep); border:none; border-radius:12px; font-size:14px; font-weight:700; color:var(--ios-text); cursor:pointer;">Cancel</button>
     </div>
   </div>
 </div>
@@ -1201,6 +1231,74 @@
       showSaving('Deleting...');
       const res = await callAdminAction('delete_game', { id });
       if (res.success) { hideSaving('Deleted'); loadGamesList(); }
+      else hideSavingError(res.msg || 'Failed to delete');
+    });
+  }
+
+  // ---- Teams CRUD ----
+  let _teamsAccordionOpen = false;
+
+  function toggleTeamsAccordion() {
+    _teamsAccordionOpen = !_teamsAccordionOpen;
+    document.getElementById('teamsAccordionBody').style.display = _teamsAccordionOpen ? 'block' : 'none';
+    document.getElementById('teamsAccordionChevron').textContent = _teamsAccordionOpen ? '▲' : '▼';
+    if (_teamsAccordionOpen) loadTeamsList();
+  }
+
+  async function loadTeamsList() {
+    const { data: teams } = await sb.from('teams').select('*').order('name');
+    const cont = document.getElementById('teamsListCont');
+    window._teamsCache = teams || [];
+    if (!teams || !teams.length) { cont.innerHTML = '<div class="empty-state">No teams yet.</div>'; return; }
+    cont.innerHTML = teams.map(t => {
+      const logoImg = t.logo_url
+        ? '<img src="' + esc(t.logo_url) + '" style="width:28px; height:28px; object-fit:contain;" onerror="this.style.display=\'none\'">'
+        : '<div style="width:28px; height:28px; border-radius:50%; background:var(--ios-sep);"></div>';
+      return '<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--ios-sep);">'
+        + '<div style="display:flex; align-items:center; gap:10px;">' + logoImg + '<span style="font-size:13px; font-weight:700;">' + esc(t.name) + '</span></div>'
+        + '<div style="display:flex; gap:6px;">'
+        + '<button onclick="openTeamModal(window._teamsCache.find(x => x.id === \'' + t.id + '\'))" style="background:#f1f5f9; border:none; border-radius:6px; padding:6px 10px; font-size:11px; cursor:pointer;">Edit</button>'
+        + '<button onclick="confirmDeleteTeam(\'' + t.id + '\')" style="background:#fff1f2; border:none; border-radius:6px; padding:6px 10px; font-size:11px; color:#991b1b; cursor:pointer;">Delete</button>'
+        + '</div></div>';
+    }).join('');
+  }
+
+  function openTeamModal(prefill) {
+    document.getElementById('teamModalTitle').textContent = prefill ? 'Edit Team' : 'Add Team';
+    if (prefill) {
+      document.getElementById('tmId').value = prefill.id;
+      document.getElementById('tmName').value = prefill.name;
+      document.getElementById('tmLogoUrl').value = prefill.logo_url || '';
+    } else {
+      document.getElementById('tmId').value = '';
+      document.getElementById('tmName').value = '';
+      document.getElementById('tmLogoUrl').value = '';
+    }
+    document.getElementById('teamModal').classList.add('open');
+  }
+  function closeTeamModal() { document.getElementById('teamModal').classList.remove('open'); }
+
+  async function saveTeam() {
+    const id = document.getElementById('tmId').value || null;
+    const name = document.getElementById('tmName').value.trim();
+    const logoUrl = document.getElementById('tmLogoUrl').value.trim();
+    if (!name) { showToast('Team name is required'); return; }
+    showSaving('Saving team...');
+    const res = await callAdminAction('save_team', { id, name, logoUrl });
+    if (res.success) {
+      hideSaving('Saved!');
+      closeTeamModal();
+      loadTeamsList();
+    } else {
+      hideSavingError(res.msg || 'Failed to save team');
+    }
+  }
+
+  function confirmDeleteTeam(id) {
+    showConfirm('Delete Team?', 'This does not affect existing games — their opponent name stays as text.', async () => {
+      showSaving('Deleting...');
+      const res = await callAdminAction('delete_team', { id });
+      if (res.success) { hideSaving('Deleted'); loadTeamsList(); }
       else hideSavingError(res.msg || 'Failed to delete');
     });
   }
