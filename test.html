@@ -308,6 +308,13 @@
           <div id="activeBroadcastList"></div>
         </div>
 
+        <div class="card">
+          <div style="font-weight:900; font-size:14px; margin-bottom:6px;">💾 DATA BACKUP</div>
+          <p style="font-size:12px; color:var(--muted-text); margin:0 0 14px 0;">Emails a full JSON export of all data to your Gmail. Runs automatically every Monday, or trigger one now.</p>
+          <button onclick="exportBackupNow()" style="width:100%; height:42px; background:#1e3a8a; border:none; border-radius:10px; color:white; font-size:13px; font-weight:900; cursor:pointer;">📧 Export Backup Now</button>
+          <div id="exportBackupStatus" style="margin-top:10px; font-size:12px; color:var(--muted-text); text-align:center;"></div>
+        </div>
+
         <div class="card" style="border:2px solid #fecaca;">
           <div style="font-weight:900; font-size:15px; margin-bottom:6px; color:#991b1b;">⚠️ SEASON RESET</div>
           <p style="font-size:12px; color:var(--muted-text); margin:0 0 14px 0;">Each option below is independent — wipe only what you need. A backup snapshot is saved before every wipe.</p>
@@ -733,6 +740,31 @@
 
   const ADMIN_ACTION_URL = "https://fcehtovermlilpvwcksl.supabase.co/functions/v1/admin-action";
   const SYNC_OHL_URL = "https://fcehtovermlilpvwcksl.supabase.co/functions/v1/sync-ohl-schedule";
+  const EXPORT_BACKUP_URL = "https://fcehtovermlilpvwcksl.supabase.co/functions/v1/export-backup";
+
+  async function exportBackupNow() {
+    const status = document.getElementById('exportBackupStatus');
+    status.textContent = 'Exporting...';
+    showSaving('Exporting backup...');
+    try {
+      const res = await fetch(EXPORT_BACKUP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+        body: JSON.stringify({ token: sessionToken })
+      });
+      const data = await res.json();
+      if (data.success) {
+        hideSaving('Sent!');
+        status.textContent = '✓ Backup emailed — check your Gmail inbox.';
+      } else {
+        hideSavingError('Export failed');
+        status.textContent = '✗ ' + (data.msg || 'unknown error');
+      }
+    } catch (e) {
+      hideSavingError('Export failed');
+      status.textContent = '✗ Network error';
+    }
+  }
 
   async function adminSyncIceDogsSchedule() {
     const status = document.getElementById('syncIceDogsStatus');
