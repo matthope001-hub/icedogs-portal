@@ -402,7 +402,7 @@
       <input type="hidden" id="gfId">
       <input type="text" id="gfNumber" placeholder="Game # (e.g. 42)">
       <input type="date" id="gfDate">
-      <input type="text" id="gfTime" placeholder="Time (e.g. 7:00 PM)">
+      <input type="time" id="gfTime">
       <input type="text" id="gfOpponent" placeholder="Opponent">
       <select id="gfType"><option value="(PRE)">Pre-Season</option><option value="(R)" selected>Regular Season</option><option value="(PL)">Playoffs</option></select>
       <input type="text" id="gfPromo" placeholder="Promo (optional)">
@@ -1223,13 +1223,34 @@
   }
 
   // ---- Games CRUD (modal-based) ----
+  function timeTo24h(str) {
+    if (!str) return '';
+    const match = str.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if (!match) return '';
+    let h = parseInt(match[1], 10);
+    const m = match[2];
+    const ampm = (match[3] || '').toUpperCase();
+    if (ampm === 'PM' && h !== 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    return String(h).padStart(2, '0') + ':' + m;
+  }
+
+  function timeTo12h(str) {
+    if (!str) return '';
+    const [hStr, m] = str.split(':');
+    let h = parseInt(hStr, 10);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return h + ':' + m + ' ' + ampm;
+  }
+
   function openGameModal(prefill) {
     document.getElementById('gameModalTitle').textContent = prefill ? 'Edit Game' : 'New Game';
     if (prefill) {
       document.getElementById('gfId').value = prefill.id;
       document.getElementById('gfNumber').value = prefill.game_number;
       document.getElementById('gfDate').value = prefill.date;
-      document.getElementById('gfTime').value = prefill.time || '';
+      document.getElementById('gfTime').value = timeTo24h(prefill.time || '');
       document.getElementById('gfOpponent').value = prefill.opponent_name || '';
       document.getElementById('gfType').value = prefill.type || '(R)';
       document.getElementById('gfPromo').value = prefill.promo || '';
@@ -1245,7 +1266,7 @@
     const id = document.getElementById('gfId').value || null;
     const gameNumber = document.getElementById('gfNumber').value.trim();
     const date = document.getElementById('gfDate').value;
-    const time = document.getElementById('gfTime').value.trim();
+    const time = timeTo12h(document.getElementById('gfTime').value);
     const opponentName = document.getElementById('gfOpponent').value.trim();
     const type = document.getElementById('gfType').value;
     const promo = document.getElementById('gfPromo').value.trim();
