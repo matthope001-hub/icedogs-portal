@@ -1095,7 +1095,7 @@
     nextMonth.setMonth(nextMonth.getMonth() + 1);
     const nextMonthStr = nextMonth.toISOString().slice(0, 10);
 
-    const { data: games } = await sb.from('games').select('id, game_number, date, time, opponent_name')
+    const { data: games } = await sb.from('games').select('id, game_number, date, time, opponent_name, schedule_locked')
       .gte('date', month + '-01').lt('date', nextMonthStr).order('date');
     const gameList = games || [];
     if (!gameList.length) { cont.innerHTML = '<div class="empty-state">No games this month.</div>'; return; }
@@ -1171,12 +1171,16 @@
       const badgeColor = isComplete ? '#166534' : (filledCount === 0 ? '#991b1b' : '#92400e');
       const badgeBg = isComplete ? '#dcfce7' : (filledCount === 0 ? '#fff1f2' : '#fff8ed');
       const badgeHtml = '<span id="matrixBadge_' + g.id + '" style="font-size:10px; font-weight:900; padding:3px 8px; border-radius:20px; background:' + badgeBg + '; color:' + badgeColor + '; white-space:nowrap;">' + filledCount + '/' + totalPositions + '</span>';
+      const lockIcon = g.schedule_locked ? '<span style="font-size:12px;" title="Schedule locked">🔒</span>' : '';
+      const lockRow = '<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0 4px; margin-top:6px; border-top:1px solid var(--ios-sep);">'
+        + '<label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700;"><input type="checkbox" id="lockCheck_' + g.id + '" ' + (g.schedule_locked ? 'checked' : '') + ' onchange="toggleScheduleLock(\'' + g.id + '\', this.checked)"> Lock schedule (staffing finalized)</label>'
+        + '</div>';
       return '<div style="border:1px solid var(--ios-sep); border-radius:10px; margin-bottom:8px; overflow:hidden;">'
         + '<div onclick="toggleMatrixGame(\'' + matrixId + '\')" style="padding:10px 12px; background:#fafafa; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px;">'
-        + '<div style="flex:1; min-width:0;"><div style="font-weight:800; font-size:12px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + '</div><div style="font-size:10px; color:var(--muted-text);">' + dateLabel + '</div></div>'
+        + '<div style="flex:1; min-width:0;"><div style="font-weight:800; font-size:12px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + ' ' + lockIcon + '</div><div style="font-size:10px; color:var(--muted-text);">' + dateLabel + '</div></div>'
         + badgeHtml
         + '<span style="font-size:11px; color:var(--muted-text);">▼</span></div>'
-        + '<div id="' + matrixId + '" style="display:none; padding:8px 12px;">' + rows + '</div></div>';
+        + '<div id="' + matrixId + '" style="display:none; padding:8px 12px;">' + rows + lockRow + '</div></div>';
     }).join('');
   }
 
@@ -1205,6 +1209,16 @@
         badge.style.background = isComplete ? '#dcfce7' : (newFilled === 0 ? '#fff1f2' : '#fff8ed');
         badge.style.color = isComplete ? '#166534' : (newFilled === 0 ? '#991b1b' : '#92400e');
       }
+    }
+  }
+
+  async function toggleScheduleLock(gameId, locked) {
+    const res = await callAdminAction('toggle_schedule_locked', { gameId, locked });
+    if (res.success) {
+      showToast(locked ? '🔒 Schedule locked' : 'Schedule unlocked');
+    } else {
+      showToast(res.msg || 'Failed to update');
+      document.getElementById('lockCheck_' + gameId).checked = !locked;
     }
   }
 
