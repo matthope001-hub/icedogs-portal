@@ -1217,7 +1217,7 @@
     const res = await callAdminAction('update_assignment', { gameId, position, officialName: officialName || null });
     if (!res.success) {
       showToast(res.msg || 'Failed to update assignment');
-      loadMatrix();
+      selectEl.value = prevVal;
       return;
     }
     selectEl.dataset.prev = officialName || '';
