@@ -1004,15 +1004,27 @@
     monthCont.innerHTML = (months || []).map(m => {
       const label = new Date(m.month + "T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
       const isActive = m.status === 'Active';
+      const notifyBtn = isActive
+        ? '<button onclick="confirmNotifyAvailability(\'' + m.month.slice(0, 7) + '\', \'' + label + '\')" style="background:#eef2ff; border:none; border-radius:6px; padding:5px 10px; font-size:11px; color:#3730a3; cursor:pointer; margin-right:8px;">Notify</button>'
+        : '';
       return '<div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--ios-sep);">'
         + '<span style="font-size:13px; font-weight:700;">' + label + '</span>'
-        + '<label class="switch"><input type="checkbox" ' + (isActive ? 'checked' : '') + ' onchange="toggleMonth(\'' + m.month + '\', this.checked)"><span class="slider"></span></label></div>';
+        + '<div style="display:flex; align-items:center;">' + notifyBtn + '<label class="switch"><input type="checkbox" ' + (isActive ? 'checked' : '') + ' onchange="toggleMonth(\'' + m.month + '\', this.checked)"><span class="slider"></span></label></div></div>';
     }).join('');
 
     loadActiveBroadcasts();
     loadGamesList();
     loadOfficialsList();
     loadMatrixMonths();
+  }
+
+  function confirmNotifyAvailability(month, label) {
+    showConfirm('Notify Officials?', 'Sends an "Availability Now Open" email for ' + label + ' to every official with an email on file (excluding PA Announcer/Video Replay staff).', async () => {
+      showSaving('Sending emails...');
+      const res = await callAdminAction('notify_availability_open', { month });
+      if (res.success) hideSaving('Sent to ' + res.count + ' officials!');
+      else hideSavingError(res.msg || 'Failed to send');
+    });
   }
 
   const ALL_POSITIONS = ["CREW CHIEF", "GAME CLOCK", "OHL GAMESHEET", "PENALTY BOX (1)", "PENALTY BOX (2)",
