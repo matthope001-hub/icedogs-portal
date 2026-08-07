@@ -2644,25 +2644,41 @@
     countdownTimer = setInterval(update, 1000);
   }
 
-  let pendingInviteToken = null;
+// Add near the other function URL constants (alongside LOGIN_FUNCTION_URL, etc.):
+  const CHECK_INVITE_URL = "https://fcehtovermlilpvwcksl.supabase.co/functions/v1/check-invite";
+
+    let pendingInviteToken = null;
 
   async function checkForInviteLink() {
     const params = new URLSearchParams(window.location.search);
     const invite = params.get('invite');
     if (!invite) return;
 
-    const { data: tokenRow } = await sb.from('profile_tokens').select('official_name, used_at').eq('token', invite).maybeSingle();
-    if (!tokenRow) { showToast('This invite link is invalid.'); return; }
-    if (tokenRow.used_at) { showToast('This invite link has already been used.'); return; }
+    let data;
+    try {
+      const res = await fetch(CHECK_INVITE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+        body: JSON.stringify({ token: invite })
+      });
+      data = await res.json();
+    } catch (e) {
+      showToast('Network error checking invite link.');
+      return;
+    }
+
+    if (!data.success) {
+      showToast(data.msg || 'This invite link is invalid.');
+      return;
+    }
 
     pendingInviteToken = invite;
-    pendingUser = tokenRow.official_name;
+    pendingUser = data.officialName;
 
-    const { data: official } = await sb.from('officials').select('email, phone, address, pass_pref').eq('name', tokenRow.official_name).maybeSingle();
-    document.getElementById('mpEmail').value = (official && official.email) || '';
-    document.getElementById('mpPhone').value = (official && official.phone) ? formatPhoneDisplay(official.phone) : '';
-    document.getElementById('mpAddress').value = (official && official.address) || '';
-    document.getElementById('mpPass').value = (official && official.pass_pref) || '';
+    document.getElementById('mpEmail').value = data.email || '';
+    document.getElementById('mpPhone').value = data.phone ? formatPhoneDisplay(data.phone) : '';
+    document.getElementById('mpAddress').value = data.address || '';
+    document.getElementById('mpPass').value = data.passPref || '';
     document.getElementById('profileFormStep').style.display = 'block';
     document.getElementById('profileConfirmStep').style.display = 'none';
     document.getElementById('profileFormError').style.display = 'none';
