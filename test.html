@@ -878,35 +878,36 @@
       submittedSetByOfficial[a.official_id].add(a.game_id);
     });
 
-    let html = '<table style="width:100%; border-collapse:collapse; font-size:12px;">';
-    html += '<tr style="background:var(--ios-bg);"><th style="padding:10px 12px; text-align:left; position:sticky; left:0; background:var(--ios-bg); white-space:nowrap; font-size:11px; text-transform:uppercase; letter-spacing:0.3px; color:var(--muted-text);">Official</th>';
+    let html = '<table style="width:100%; border-collapse:collapse; font-size:11px; table-layout:fixed;">';
+    html += '<tr style="background:var(--ios-bg);"><th style="padding:8px 4px; text-align:left; position:sticky; left:0; background:var(--ios-bg); white-space:nowrap; font-size:10px; text-transform:uppercase; letter-spacing:0.2px; color:var(--muted-text); width:78px;">Official</th>';
     months.forEach(m => {
       const short = new Date(m + '-01T12:00:00').toLocaleDateString('en-US', { month: 'short' });
-      html += '<th style="padding:10px 8px; text-align:center; white-space:nowrap; font-size:11px; text-transform:uppercase; letter-spacing:0.3px; color:var(--muted-text);">' + short + '</th>';
+      html += '<th style="padding:8px 2px; text-align:center; white-space:nowrap; font-size:10px; text-transform:uppercase; letter-spacing:0.2px; color:var(--muted-text);">' + short + '</th>';
     });
     html += '</tr>';
 
     regularOfficials.forEach((o, i) => {
       const submitted = submittedSetByOfficial[o.id] || new Set();
       const rowBg = i % 2 === 0 ? 'var(--ios-card)' : 'var(--ios-bg)';
-      html += '<tr style="border-top:1px solid var(--ios-sep); background:' + rowBg + ';"><td style="padding:10px 12px; font-weight:700; font-size:13px; position:sticky; left:0; background:' + rowBg + '; white-space:nowrap;">' + esc(o.name) + '</td>';
+      const shortName = o.name.length > 11 ? o.name.split(' ').map((p, idx, arr) => idx === arr.length - 1 ? p.charAt(0) + '.' : p).join(' ') : o.name;
+      html += '<tr style="border-top:1px solid var(--ios-sep); background:' + rowBg + ';"><td title="' + esc(o.name) + '" style="padding:6px 4px; font-weight:700; font-size:11px; position:sticky; left:0; background:' + rowBg + '; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + esc(shortName) + '</td>';
       months.forEach(m => {
         const gameIds = gamesByMonth[m];
         const fullySubmitted = gameIds.every(gid => submitted.has(gid));
         const partiallySubmitted = !fullySubmitted && gameIds.some(gid => submitted.has(gid));
         let badge;
-        if (fullySubmitted) badge = '<span style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:#15803d; color:white; font-size:14px; font-weight:900;">✓</span>';
-        else if (partiallySubmitted) badge = '<span style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:#d97706; color:white; font-size:13px; font-weight:900;">~</span>';
-        else badge = '<span style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:rgba(153,27,27,0.5); color:white; font-size:13px; font-weight:900;">✗</span>';
-        html += '<td style="padding:8px; text-align:center;">' + badge + '</td>';
+        if (fullySubmitted) badge = '<span style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:#15803d; color:white; font-size:10px; font-weight:900;">✓</span>';
+        else if (partiallySubmitted) badge = '<span style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:#d97706; color:white; font-size:10px; font-weight:900;">~</span>';
+        else badge = '<span style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:rgba(153,27,27,0.5); color:white; font-size:10px; font-weight:900;">✗</span>';
+        html += '<td style="padding:4px 1px; text-align:center;">' + badge + '</td>';
       });
       html += '</tr>';
     });
     html += '</table>';
-    html += '<div style="padding:12px 14px; font-size:11px; color:var(--muted-text); border-top:1px solid var(--ios-sep); display:flex; gap:16px; flex-wrap:wrap;">'
-      + '<span style="display:flex; align-items:center; gap:5px;"><span style="width:14px; height:14px; border-radius:50%; background:#15803d; display:inline-block;"></span>Fully submitted</span>'
-      + '<span style="display:flex; align-items:center; gap:5px;"><span style="width:14px; height:14px; border-radius:50%; background:#d97706; display:inline-block;"></span>Partially submitted</span>'
-      + '<span style="display:flex; align-items:center; gap:5px;"><span style="width:14px; height:14px; border-radius:50%; background:rgba(153,27,27,0.5); display:inline-block;"></span>Not submitted</span>'
+    html += '<div style="padding:10px 12px; font-size:10px; color:var(--muted-text); border-top:1px solid var(--ios-sep); display:flex; gap:12px; flex-wrap:wrap;">'
+      + '<span style="display:flex; align-items:center; gap:4px;"><span style="width:11px; height:11px; border-radius:50%; background:#15803d; display:inline-block;"></span>Full</span>'
+      + '<span style="display:flex; align-items:center; gap:4px;"><span style="width:11px; height:11px; border-radius:50%; background:#d97706; display:inline-block;"></span>Partial</span>'
+      + '<span style="display:flex; align-items:center; gap:4px;"><span style="width:11px; height:11px; border-radius:50%; background:rgba(153,27,27,0.5); display:inline-block;"></span>None</span>'
       + '</div>';
 
     cont.innerHTML = html;
