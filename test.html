@@ -602,6 +602,28 @@
 
   const CA_POSTAL_REGEX = /([A-Za-z]\d[A-Za-z])\s?(\d[A-Za-z]\d)\s*$/;
 
+  function toTitleCase(str) {
+    return str.toLowerCase().replace(/(^|\s|-)([a-z])/g, (m, sep, ch) => sep + ch.toUpperCase());
+  }
+
+  function cleanAddress(raw) {
+    let address = raw.trim().replace(/\s+/g, ' ').replace(/\s*,\s*/g, ', ');
+    const match = address.match(CA_POSTAL_REGEX);
+    let postal = '';
+    if (match) {
+      postal = (match[1] + ' ' + match[2]).toUpperCase();
+      address = address.slice(0, match.index).trim().replace(/,\s*$/, '');
+    }
+    const parts = address.split(',').map(p => {
+      const trimmed = p.trim();
+      // Keep 2-letter province codes uppercase (ON, BC, etc.) rather than title-casing them
+      if (/^[A-Za-z]{2}$/.test(trimmed)) return trimmed.toUpperCase();
+      return toTitleCase(trimmed);
+    });
+    address = parts.join(', ');
+    return postal ? address + ', ' + postal : address;
+  }
+
   function formatModalAddress(input) {
     const match = input.value.match(CA_POSTAL_REGEX);
     if (match) {
@@ -626,8 +648,7 @@
     if (phone.length !== 10) { errEl.textContent = 'Please enter a valid 10-digit phone number.'; errEl.style.display = 'block'; return; }
     if (!address) { errEl.textContent = 'Please enter your mailing address.'; errEl.style.display = 'block'; return; }
     if (!validateAddress(address)) { errEl.textContent = 'Please include a valid postal code, e.g. 123 Main St, City, ON A1A 1A1'; errEl.style.display = 'block'; return; }
-    const match = address.match(CA_POSTAL_REGEX);
-    address = address.slice(0, match.index) + (match[1] + ' ' + match[2]).toUpperCase();
+    address = cleanAddress(address);
     document.getElementById('mpAddress').value = address;
     if (!pass) { errEl.textContent = 'Please select a pass preference.'; errEl.style.display = 'block'; return; }
     errEl.style.display = 'none';
