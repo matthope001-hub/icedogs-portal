@@ -1489,20 +1489,19 @@
 
     cont.innerHTML = regularOfficials.map(o => {
       const inviteBtn = o.email
-        ? '<button onclick="sendInviteFor(\'' + o.id + '\')" style="background:#eef2ff; border:none; border-radius:6px; padding:6px 10px; font-size:11px; color:#3730a3; cursor:pointer;">Invite</button>'
+        ? '<button onclick="sendInviteFor(\'' + o.id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">Invite</button>'
         : '';
       const skillCount = (skillsByOfficial[o.id] || new Set()).size;
-      return '<div style="border-bottom:1px solid var(--ios-sep);">'
-        + '<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0;">'
-        + '<div><div style="font-weight:700; font-size:13px;">' + esc(o.name) + '</div>'
-        + '<div style="font-size:11px; color:var(--muted-text);">' + esc(o.role) + (o.email ? ' · ' + esc(o.email) : '') + (o.profile_complete ? '' : ' · <span style="color:#f59e0b;">Incomplete</span>') + ' · <span id="skillCount_' + o.id + '">' + skillCount + '/' + SKILL_POSITIONS.length + '</span> skills</div></div>'
-        + '<div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;">'
+      return '<div style="border-bottom:1px solid var(--ios-sep); padding:12px 0;">'
+        + '<div style="font-weight:700; font-size:13px; margin-bottom:2px;">' + esc(o.name) + '</div>'
+        + '<div style="font-size:11px; color:var(--muted-text); margin-bottom:10px;">' + esc(o.role) + (o.email ? ' · ' + esc(o.email) : '') + (o.profile_complete ? '' : ' · <span style="color:#f59e0b;">Incomplete</span>') + ' · <span id="skillCount_' + o.id + '">' + skillCount + '/' + SKILL_POSITIONS.length + '</span> skills</div>'
+        + '<div style="display:flex; gap:6px;">'
         + inviteBtn
-        + '<button onclick="toggleSkillsPanel(\'' + o.id + '\')" style="background:#eef2ff; border:none; border-radius:6px; padding:6px 10px; font-size:11px; color:#3730a3; cursor:pointer;">Skills</button>'
-        + '<button onclick="openOfficialModal(window._officialsCache.find(x => x.id === \'' + o.id + '\'))" style="background:#f1f5f9; border:none; border-radius:6px; padding:6px 10px; font-size:11px; cursor:pointer;">Edit</button>'
-        + '<button onclick="confirmDeleteOfficial(\'' + o.id + '\')" style="background:#fff1f2; border:none; border-radius:6px; padding:6px 10px; font-size:11px; color:#991b1b; cursor:pointer;">Delete</button>'
-        + '</div></div>'
-        + '<div id="skillsPanel_' + o.id + '" style="display:none; padding:0 0 14px;"></div>'
+        + '<button onclick="toggleSkillsPanel(\'' + o.id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">Skills</button>'
+        + '<button onclick="openOfficialModal(window._officialsCache.find(x => x.id === \'' + o.id + '\'))" style="flex:1; background:var(--ios-card); border:1px solid var(--ios-sep); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:var(--ios-text); cursor:pointer;">Edit</button>'
+        + '<button onclick="confirmDeleteOfficial(\'' + o.id + '\')" style="flex:1; background:rgba(220,38,38,0.15); border:1px solid rgba(220,38,38,0.4); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#f87171; cursor:pointer;">Delete</button>'
+        + '</div>'
+        + '<div id="skillsPanel_' + o.id + '" style="display:none; padding-top:12px;"></div>'
         + '</div>';
     }).join('');
 
@@ -1512,18 +1511,18 @@
     } else {
       fixedCont.innerHTML = fixedIds2.map(id => {
         const entry = fixedByOfficial[id];
-        const positionBadges = entry.positions.map(p => '<span style="font-size:10px; font-weight:900; background:#eef2ff; color:#3730a3; padding:2px 8px; border-radius:20px; margin-right:4px;">' + esc(p) + '</span>').join('');
+        const positionBadges = entry.positions.map(p => '<span style="font-size:10px; font-weight:900; background:rgba(59,73,223,0.15); color:#5b6cff; padding:2px 8px; border-radius:20px; margin-right:4px;">' + esc(p) + '</span>').join('');
         const skillCount = (skillsByOfficial[id] || new Set()).size;
-        return '<div style="border-bottom:1px solid var(--ios-sep);">'
-          + '<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0;">'
-          + '<div><div style="font-weight:700; font-size:13px;">' + esc(entry.info.name) + '</div><div style="margin-top:4px;">' + positionBadges + '</div>'
-          + '<div style="font-size:11px; color:var(--muted-text); margin-top:4px;">Backup skills: <span id="skillCount_' + id + '">' + skillCount + '/' + SKILL_POSITIONS.length + '</span></div></div>'
+        return '<div style="border-bottom:1px solid var(--ios-sep); padding:12px 0;">'
+          + '<div style="font-weight:700; font-size:13px; margin-bottom:4px;">' + esc(entry.info.name) + '</div>'
+          + '<div style="margin-bottom:4px;">' + positionBadges + '</div>'
+          + '<div style="font-size:11px; color:var(--muted-text); margin-bottom:10px;">Backup skills: <span id="skillCount_' + id + '">' + skillCount + '/' + SKILL_POSITIONS.length + '</span></div>'
           + '<div style="display:flex; gap:6px;">'
-          + '<button onclick="toggleSkillsPanel(\'' + id + '\')" style="background:#eef2ff; border:none; border-radius:6px; padding:6px 10px; font-size:11px; color:#3730a3; cursor:pointer;">Skills</button>'
-          + '<button onclick="openFixedStaffModal(window._fixedByOfficial[\'' + id + '\'])" style="background:#f1f5f9; border:none; border-radius:6px; padding:6px 10px; font-size:11px; cursor:pointer;">Edit</button>'
-          + '<button onclick="confirmDeleteOfficial(\'' + id + '\')" style="background:#fff1f2; border:none; border-radius:6px; padding:6px 10px; font-size:11px; color:#991b1b; cursor:pointer;">Delete</button>'
-          + '</div></div>'
-          + '<div id="skillsPanel_' + id + '" style="display:none; padding:0 0 14px;"></div>'
+          + '<button onclick="toggleSkillsPanel(\'' + id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">Skills</button>'
+          + '<button onclick="openFixedStaffModal(window._fixedByOfficial[\'' + id + '\'])" style="flex:1; background:var(--ios-card); border:1px solid var(--ios-sep); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:var(--ios-text); cursor:pointer;">Edit</button>'
+          + '<button onclick="confirmDeleteOfficial(\'' + id + '\')" style="flex:1; background:rgba(220,38,38,0.15); border:1px solid rgba(220,38,38,0.4); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#f87171; cursor:pointer;">Delete</button>'
+          + '</div>'
+          + '<div id="skillsPanel_' + id + '" style="display:none; padding-top:12px;"></div>'
           + '</div>';
       }).join('');
     }
