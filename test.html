@@ -837,11 +837,14 @@
     const now = new Date();
     const curMonth = now.getMonth() + 1;
     const curYear = now.getFullYear();
-    const seasonStartYear = curMonth >= 9 ? curYear : curYear - 1;
+    // Cutover in July, not September — by mid-summer, all the real activity
+    // (games being scheduled, officials being lined up) is for the upcoming
+    // season, so treat July onward as already "in" that season.
+    const seasonStartYear = curMonth >= 7 ? curYear : curYear - 1;
     const seasonEndYear = seasonStartYear + 1;
     return {
-      start: seasonStartYear + '-09-01',
-      end: seasonEndYear + '-06-01',
+      start: seasonStartYear + '-07-01',
+      end: seasonEndYear + '-07-01',
     };
   }
 
