@@ -243,6 +243,14 @@
 
       <div id="adminSubStats" style="display:none;">
         <div class="card" style="padding:0; overflow:hidden;">
+          <div style="padding:14px 16px; border-bottom:1px solid var(--ios-sep);">
+            <div style="font-weight:900; font-size:14px;">✅ SUBMISSION OVERVIEW</div>
+            <div style="font-size:11px; color:var(--muted-text); margin-top:2px;">Who has submitted availability for each month</div>
+          </div>
+          <div id="submissionOverviewCont" style="overflow-x:auto;"><div style="padding:20px; text-align:center; color:var(--muted-text); font-size:12px;">Loading...</div></div>
+        </div>
+
+        <div class="card" style="padding:0; overflow:hidden;">
           <div style="padding:14px 16px; border-bottom:1px solid var(--ios-sep); display:flex; align-items:center; justify-content:space-between;">
             <div>
               <div style="font-weight:900; font-size:14px;">🏒 SEASON LEADERBOARD</div>
@@ -822,6 +830,7 @@
       btn.style.color = active ? 'white' : '#666';
     });
     if (tab === 'avail') loadAdminAvailOfficials();
+    if (tab === 'stats') { loadSeasonStats(); loadReasonStats(); loadSubmissionOverview(); }
   }
 
   function getCurrentSeasonRange() {
@@ -834,6 +843,62 @@
       start: seasonStartYear + '-09-01',
       end: seasonEndYear + '-06-01',
     };
+  }
+
+  async function loadSubmissionOverview() {
+    const cont = document.getElementById('submissionOverviewCont');
+    cont.innerHTML = '<div style="padding:20px; text-align:center; color:var(--muted-text); font-size:12px;">Loading...</div>';
+
+    const { data: officials } = await sb.from('officials').select('id, name').order('name');
+    const { data: fixedStaff } = await sb.from('role_restrictions').select('official_id').in('position', ['PA ANNOUNCER', 'VIDEO REPLAY']);
+    const fixedStaffIds = new Set((fixedStaff || []).map(r => r.official_id));
+    const regularOfficials = (officials || []).filter(o => !fixedStaffIds.has(o.id));
+
+    const { data: games } = await sb.from('games').select('id, date').order('date');
+    const gamesByMonth = {};
+    (games || []).forEach(g => {
+      const key = g.date.slice(0, 7);
+      if (!gamesByMonth[key]) gamesByMonth[key] = [];
+      gamesByMonth[key].push(g.id);
+    });
+    const months = Object.keys(gamesByMonth).sort();
+
+    if (!regularOfficials.length || !months.length) {
+      cont.innerHTML = '<div class="empty-state">No data yet.</div>';
+      return;
+    }
+
+    const { data: availRows } = await sb.from('availability').select('official_id, game_id');
+    const submittedSetByOfficial = {};
+    (availRows || []).forEach(a => {
+      if (!submittedSetByOfficial[a.official_id]) submittedSetByOfficial[a.official_id] = new Set();
+      submittedSetByOfficial[a.official_id].add(a.game_id);
+    });
+
+    let html = '<table style="width:100%; border-collapse:collapse; font-size:11px;">';
+    html += '<tr style="background:var(--ios-bg);"><th style="padding:8px 10px; text-align:left; position:sticky; left:0; background:var(--ios-bg); white-space:nowrap;">Official</th>';
+    months.forEach(m => {
+      const short = new Date(m + '-01T12:00:00').toLocaleDateString('en-US', { month: 'short' });
+      html += '<th style="padding:8px 6px; text-align:center; white-space:nowrap;">' + short + '</th>';
+    });
+    html += '</tr>';
+
+    regularOfficials.forEach(o => {
+      const submitted = submittedSetByOfficial[o.id] || new Set();
+      html += '<tr style="border-top:1px solid var(--ios-sep);"><td style="padding:8px 10px; font-weight:700; position:sticky; left:0; background:var(--ios-card); white-space:nowrap;">' + esc(o.name) + '</td>';
+      months.forEach(m => {
+        const gameIds = gamesByMonth[m];
+        const fullySubmitted = gameIds.every(gid => submitted.has(gid));
+        const partiallySubmitted = !fullySubmitted && gameIds.some(gid => submitted.has(gid));
+        const icon = fullySubmitted ? '<span style="color:#166534;">✓</span>' : (partiallySubmitted ? '<span style="color:#92400e;">~</span>' : '<span style="color:#991b1b;">✗</span>');
+        html += '<td style="padding:8px 6px; text-align:center;">' + icon + '</td>';
+      });
+      html += '</tr>';
+    });
+    html += '</table>';
+    html += '<div style="padding:10px 14px; font-size:10px; color:var(--muted-text); border-top:1px solid var(--ios-sep);">✓ fully submitted &nbsp; ~ partially submitted &nbsp; ✗ not submitted</div>';
+
+    cont.innerHTML = html;
   }
 
   async function loadSeasonStats() {
