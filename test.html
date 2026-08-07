@@ -504,7 +504,7 @@
     <div id="profileFormStep" class="modal-body">
       <input type="email" id="mpEmail" placeholder="Email Address" autocomplete="email">
       <input type="tel" id="mpPhone" placeholder="Phone Number" inputmode="numeric" maxlength="14" oninput="formatModalPhone(this)">
-      <input type="text" id="mpAddress" placeholder="123 Main St, City, ON A1A 1A1" oninput="formatModalAddress(this)">
+      <input type="text" id="mpAddress" placeholder="123 Main St, City, ON A1A 1A1" oninput="formatModalAddress(this)" onblur="this.value = cleanAddress(this.value)">
       <select id="mpPass"><option value="">-- Pass Preference --</option><option value="Digital">Digital</option><option value="Physical">Physical</option></select>
       <div id="profileFormError" style="display:none; color:#C8102E; font-size:12px; font-weight:700; margin-bottom:10px;"></div>
       <button class="btn-primary" onclick="validateProfileModal()">Review & Confirm →</button>
