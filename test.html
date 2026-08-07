@@ -2172,6 +2172,7 @@
       if (!rosterByGame[a.game_id]) rosterByGame[a.game_id] = [];
       rosterByGame[a.game_id].push({ position: a.position, name: a.officials.name });
     });
+    Object.values(rosterByGame).forEach(roster => roster.sort((a, b) => ALL_POSITIONS.indexOf(a.position) - ALL_POSITIONS.indexOf(b.position)));
     const availByGame = {};
     (avail || []).forEach(a => {
       if (!a.officials) return;
@@ -2439,6 +2440,7 @@
         if (!rosterByGame[a.game_id]) rosterByGame[a.game_id] = [];
         rosterByGame[a.game_id].push({ position: a.position, name: a.officials.name });
       });
+      Object.values(rosterByGame).forEach(roster => roster.sort((a, b) => ALL_POSITIONS.indexOf(a.position) - ALL_POSITIONS.indexOf(b.position)));
     }
 
     let availByGame = {};
