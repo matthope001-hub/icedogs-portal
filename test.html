@@ -2175,7 +2175,7 @@
         + '<div id="' + monthId + '" style="display:none;">'
         + mGames.map(g => {
             const dateLabel = new Date(g.date + "T12:00:00").toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-            const logo = logoMap[(g.opponent || '').toLowerCase()] || '';
+            const logo = getLogoForTeam(g.opponent, logoMap) || '';
             const homeAway = g.is_home
               ? '<span style="font-size:9px; font-weight:900; background:var(--icedogs-red); color:white; padding:1px 5px; border-radius:3px; margin-left:4px;">HOME</span>'
               : '<span style="font-size:9px; font-weight:900; background:var(--ios-sep); color:var(--muted-text); padding:1px 5px; border-radius:3px; margin-left:4px;">AWAY</span>';
@@ -2223,6 +2223,10 @@
     const gameList = games || [];
     if (!gameList.length) { cont.innerHTML = '<div class="empty-state">No upcoming games.</div>'; return; }
 
+    const { data: teams } = await sb.from('teams').select('name, logo_url');
+    const logoMap = {};
+    (teams || []).forEach(t => { if (t.name && t.logo_url) logoMap[t.name.toLowerCase()] = t.logo_url; });
+
     const gameIds = gameList.map(g => g.id);
     const { data: assignments } = await sb
       .from('assignments')
@@ -2264,11 +2268,18 @@
           + '</div></div>'
         : '';
 
-      return '<div style="border-bottom:1px solid var(--ios-sep); padding:12px 14px;">'
+      const logo = getLogoForTeam(g.opponent_name, logoMap) || '';
+      const logoHtml = logo
+        ? '<img src="' + esc(logo) + '" style="width:32px; height:32px; object-fit:contain; flex-shrink:0;" onerror="this.style.display=\'none\'">'
+        : '<div style="width:32px; height:32px; border-radius:50%; background:var(--ios-sep); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; color:var(--muted-text);">' + (g.opponent_name ? g.opponent_name.charAt(0) : '?') + '</div>';
+
+      return '<div style="border-bottom:1px solid var(--ios-sep); padding:12px 14px; display:flex; gap:10px;">'
+        + logoHtml
+        + '<div style="flex:1; min-width:0;">'
         + '<div style="font-weight:800; font-size:13px;">vs ' + esc(g.opponent_name) + '</div>'
         + '<div style="font-size:11px; color:var(--muted-text); margin-bottom:8px;">' + dateLabel + ' @ ' + (g.time || 'TBD') + '</div>'
         + crewRows + availChips
-        + '</div>';
+        + '</div></div>';
     }).join('');
   }
 
