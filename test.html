@@ -1024,7 +1024,7 @@
   }
 
   function confirmNotifyAvailability(month, label) {
-    showConfirm('Notify Officials?', 'Sends an "Availability Now Open" email for ' + label + ' to every official with an email on file (excluding PA Announcer/Video Replay staff).', async () => {
+    showConfirm('Notify Officials?', 'Sends an "Availability Now Open" email for ' + label + ' to officials who haven\'t fully submitted yet (excluding PA Announcer/Video Replay staff).', async () => {
       showSaving('Sending emails...');
       const res = await callAdminAction('notify_availability_open', { month });
       if (res.success) hideSaving('Sent to ' + res.count + ' officials!');
