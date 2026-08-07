@@ -999,6 +999,15 @@
     const { data: setting } = await sb.from('app_settings').select('value').eq('key', 'pin_required').maybeSingle();
     document.getElementById('pinToggle').checked = setting && setting.value === 'ON';
 
+    await loadMonthToggleList();
+
+    loadActiveBroadcasts();
+    loadGamesList();
+    loadOfficialsList();
+    loadMatrixMonths();
+  }
+
+  async function loadMonthToggleList() {
     const { data: months } = await sb.from('month_windows').select('month, status').order('month');
     const monthCont = document.getElementById('monthToggleList');
     monthCont.innerHTML = (months || []).map(m => {
@@ -1011,11 +1020,6 @@
         + '<span style="font-size:13px; font-weight:700;">' + label + '</span>'
         + '<div style="display:flex; align-items:center;">' + notifyBtn + '<label class="switch"><input type="checkbox" ' + (isActive ? 'checked' : '') + ' onchange="toggleMonth(\'' + m.month + '\', this.checked)"><span class="slider"></span></label></div></div>';
     }).join('');
-
-    loadActiveBroadcasts();
-    loadGamesList();
-    loadOfficialsList();
-    loadMatrixMonths();
   }
 
   function confirmNotifyAvailability(month, label) {
@@ -1682,8 +1686,8 @@
   async function toggleMonth(month, checked) {
     showSaving('Updating...');
     const res = await callAdminAction('toggle_month', { month, status: checked ? 'Active' : 'Hidden' });
-    if (res.success) hideSaving('Updated!');
-    else { hideSavingError(res.msg || 'Failed to update'); loadAdmin(); }
+    if (res.success) { hideSaving('Updated!'); loadMonthToggleList(); }
+    else { hideSavingError(res.msg || 'Failed to update'); loadMonthToggleList(); }
   }
 
   function setBroadcastType(type) {
