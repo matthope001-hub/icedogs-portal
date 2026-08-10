@@ -60,16 +60,30 @@
   let broadcastType = 'reminder';
 
 
+  function switchAdminTopTab(tab) {
+    document.getElementById('adminTopUsage').style.display = tab === 'usage' ? 'block' : 'none';
+    document.getElementById('adminTopSettings').style.display = tab === 'settings' ? 'block' : 'none';
+    const btnUsage = document.getElementById('adminTopBtnUsage');
+    const btnSettings = document.getElementById('adminTopBtnSettings');
+    btnUsage.style.background = tab === 'usage' ? 'var(--icedogs-red)' : 'none';
+    btnUsage.style.color = tab === 'usage' ? 'white' : '#666';
+    btnSettings.style.background = tab === 'settings' ? 'var(--icedogs-red)' : 'none';
+    btnSettings.style.color = tab === 'settings' ? 'white' : '#666';
+    if (tab === 'usage') switchAdminSubTab('sked');
+  }
+
   function switchAdminSubTab(tab) {
     document.getElementById('adminSubSked').style.display = tab === 'sked' ? 'block' : 'none';
+    document.getElementById('adminSubAvailWin').style.display = tab === 'availWin' ? 'block' : 'none';
+    document.getElementById('adminSubBroadcast').style.display = tab === 'broadcast' ? 'block' : 'none';
     document.getElementById('adminSubGames').style.display = tab === 'games' ? 'block' : 'none';
     document.getElementById('adminSubOfficials').style.display = tab === 'officials' ? 'block' : 'none';
     document.getElementById('adminSubAvail').style.display = tab === 'avail' ? 'block' : 'none';
     document.getElementById('adminSubStats').style.display = tab === 'stats' ? 'block' : 'none';
-    document.getElementById('adminSubSettings').style.display = tab === 'settings' ? 'block' : 'none';
-    ['Sked', 'Games', 'Officials', 'Avail', 'Stats', 'Settings'].forEach(t => {
+    ['Sked', 'AvailWin', 'Broadcast', 'Games', 'Officials', 'Avail', 'Stats'].forEach(t => {
       const btn = document.getElementById('subTabBtn' + t);
-      const key = t.toLowerCase();
+      if (!btn) return;
+      const key = t.charAt(0).toLowerCase() + t.slice(1);
       const active = key === tab;
       btn.style.background = active ? 'var(--icedogs-red)' : 'none';
       btn.style.color = active ? 'white' : '#666';
@@ -337,6 +351,8 @@
     loadOfficialsList();
     loadMatrixMonths();
     loadPositionSetupList();
+
+    switchAdminTopTab('usage');
   }
 
 
