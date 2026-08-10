@@ -925,7 +925,7 @@
         + inviteBtn
         + '<button onclick="toggleSkillsPanel(\'' + o.id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">Skills</button>'
         + '<button onclick="openOfficialModal(window._officialsCache.find(x => x.id === \'' + o.id + '\'))" style="flex:1; background:var(--ios-card); border:1px solid var(--ios-sep); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:var(--ios-text); cursor:pointer;">Edit</button>'
-        + '<button onclick="confirmDeleteOfficial(\'' + o.id + '\')" style="flex:1; background:#fff1f2; border:none; border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#991b1b; cursor:pointer;">Delete</button>'
+        + '<button onclick="confirmDeleteOfficial(\'' + o.id + '\')" style="flex:1; background:#fff1f2; border:1px solid rgba(153,27,27,0.2); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#991b1b; cursor:pointer;">Delete</button>'
         + '</div>'
         + '<div id="skillsPanel_' + o.id + '" style="display:none; padding-top:12px;"></div>'
         + '</div>';
@@ -946,7 +946,7 @@
           + '<div style="display:flex; gap:6px;">'
           + '<button onclick="toggleSkillsPanel(\'' + id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">Skills</button>'
           + '<button onclick="openFixedStaffModal(window._fixedByOfficial[\'' + id + '\'])" style="flex:1; background:var(--ios-card); border:1px solid var(--ios-sep); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:var(--ios-text); cursor:pointer;">Edit</button>'
-          + '<button onclick="confirmDeleteOfficial(\'' + id + '\')" style="flex:1; background:#fff1f2; border:none; border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#991b1b; cursor:pointer;">Delete</button>'
+          + '<button onclick="confirmDeleteOfficial(\'' + id + '\')" style="flex:1; background:#fff1f2; border:1px solid rgba(153,27,27,0.2); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#991b1b; cursor:pointer;">Delete</button>'
           + '</div>'
           + '<div id="skillsPanel_' + id + '" style="display:none; padding-top:12px;"></div>'
           + '</div>';
