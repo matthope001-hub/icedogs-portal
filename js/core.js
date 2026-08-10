@@ -336,9 +336,16 @@
 
   let _confirmCallback = null;
 
-  function showConfirm(title, msg, onConfirm) {
+  function showConfirm(title, msg, onConfirm, okLabel, showCancel) {
     document.getElementById('confirmTitle').textContent = title;
     document.getElementById('confirmMsg').textContent = msg;
+    const okBtn = document.getElementById('confirmOkBtn');
+    const cancelBtn = document.getElementById('confirmCancelBtn');
+    okBtn.textContent = okLabel || 'Delete';
+    // Non-destructive labels (e.g. "Got It") get the neutral dark styling
+    // instead of the red danger button, since nothing is being deleted.
+    okBtn.style.background = (okLabel && okLabel !== 'Delete') ? '#333' : '';
+    cancelBtn.style.display = showCancel === false ? 'none' : '';
     _confirmCallback = onConfirm;
     document.getElementById('confirmModal').classList.add('open');
   }
