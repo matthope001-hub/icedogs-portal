@@ -359,10 +359,24 @@
     const res = await callAdminAction('toggle_position', { position, enabled });
     if (res.success) {
       hideSaving('Updated!');
+      _enabledPositionsCache = null; // invalidate so matrix/skills reflect the change
     } else {
       hideSavingError(res.msg || 'Failed to update');
       loadPositionSetupList();
     }
+  }
+
+  // Cache of currently-enabled position names (Set), used by the scheduling
+  // matrix and skills panel so a disabled position disappears from both.
+  // Crew Chief is never in position_settings and is always treated as active.
+  let _enabledPositionsCache = null;
+
+  async function getEnabledPositionSet() {
+    if (_enabledPositionsCache) return _enabledPositionsCache;
+    const { data: positions } = await sb.from('position_settings').select('position').eq('enabled', true);
+    _enabledPositionsCache = new Set((positions || []).map(p => p.position));
+    _enabledPositionsCache.add('CREW CHIEF');
+    return _enabledPositionsCache;
   }
 
 
@@ -424,6 +438,8 @@
     const { data: avail } = await sb.from('availability').select('game_id, status, officials(name)').in('game_id', gameIds).eq('status', 'Available');
     const { data: restrictions } = await sb.from('role_restrictions').select('position, officials(name)');
     const { data: skills } = await sb.from('official_skills').select('position, officials(name)');
+    const enabledPositions = await getEnabledPositionSet();
+    const ACTIVE_POSITIONS = ALL_POSITIONS.filter(pos => enabledPositions.has(pos));
 
     const restrictionMap = {};
     (restrictions || []).forEach(r => {
@@ -460,7 +476,7 @@
       const gameAssignments = assignByGame[g.id] || {};
       const pool = (availByGame[g.id] || []).slice().sort();
 
-      const rows = ALL_POSITIONS.map(pos => {
+      const rows = ACTIVE_POSITIONS.map(pos => {
         const current = gameAssignments[pos] || '';
         const isFixed = FIXED_POSITIONS.includes(pos);
         let options;
@@ -484,8 +500,8 @@
       }).join('');
 
       const matrixId = 'matrix_' + g.id;
-      const filledCount = ALL_POSITIONS.filter(pos => gameAssignments[pos]).length;
-      const totalPositions = ALL_POSITIONS.length;
+      const filledCount = ACTIVE_POSITIONS.filter(pos => gameAssignments[pos]).length;
+      const totalPositions = ACTIVE_POSITIONS.length;
       const isComplete = filledCount === totalPositions;
       const badgeColor = isComplete ? '#166534' : (filledCount === 0 ? '#991b1b' : '#92400e');
       const badgeBg = isComplete ? '#dcfce7' : (filledCount === 0 ? '#fff1f2' : '#fff8ed');
@@ -841,6 +857,9 @@
     });
     window._skillsByOfficial = skillsByOfficial;
 
+    const enabledPositionsForCount = await getEnabledPositionSet();
+    const activeSkillPositionCount = SKILL_POSITIONS.filter(pos => enabledPositionsForCount.has(pos)).length;
+
     cont.innerHTML = regularOfficials.map(o => {
       const inviteBtn = o.email
         ? '<button onclick="sendInviteFor(\'' + o.id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">Invite</button>'
@@ -848,7 +867,7 @@
       const skillCount = (skillsByOfficial[o.id] || new Set()).size;
       return '<div style="border-bottom:1px solid var(--ios-sep); padding:12px 0;">'
         + '<div style="font-weight:700; font-size:13px; margin-bottom:2px;">' + esc(o.name) + '</div>'
-        + '<div style="font-size:11px; color:var(--muted-text); margin-bottom:10px;">' + esc(o.role) + (o.email ? ' · ' + esc(o.email) : '') + (o.profile_complete ? '' : ' · <span style="color:#f59e0b;">Incomplete</span>') + ' · <span id="skillCount_' + o.id + '">' + skillCount + '/' + SKILL_POSITIONS.length + '</span> skills</div>'
+        + '<div style="font-size:11px; color:var(--muted-text); margin-bottom:10px;">' + esc(o.role) + (o.email ? ' · ' + esc(o.email) : '') + (o.profile_complete ? '' : ' · <span style="color:#f59e0b;">Incomplete</span>') + ' · <span id="skillCount_' + o.id + '">' + skillCount + '/' + activeSkillPositionCount + '</span> skills</div>'
         + '<div style="display:flex; gap:6px;">'
         + inviteBtn
         + '<button onclick="toggleSkillsPanel(\'' + o.id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">Skills</button>'
@@ -870,7 +889,7 @@
         return '<div style="border-bottom:1px solid var(--ios-sep); padding:12px 0;">'
           + '<div style="font-weight:700; font-size:13px; margin-bottom:4px;">' + esc(entry.info.name) + '</div>'
           + '<div style="margin-bottom:4px;">' + positionBadges + '</div>'
-          + '<div style="font-size:11px; color:var(--muted-text); margin-bottom:10px;">Backup skills: <span id="skillCount_' + id + '">' + skillCount + '/' + SKILL_POSITIONS.length + '</span></div>'
+          + '<div style="font-size:11px; color:var(--muted-text); margin-bottom:10px;">Backup skills: <span id="skillCount_' + id + '">' + skillCount + '/' + activeSkillPositionCount + '</span></div>'
           + '<div style="display:flex; gap:6px;">'
           + '<button onclick="toggleSkillsPanel(\'' + id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">Skills</button>'
           + '<button onclick="openFixedStaffModal(window._fixedByOfficial[\'' + id + '\'])" style="flex:1; background:var(--ios-card); border:1px solid var(--ios-sep); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:var(--ios-text); cursor:pointer;">Edit</button>'
@@ -978,14 +997,16 @@
   }
 
 
-  function toggleSkillsPanel(officialId) {
+  async function toggleSkillsPanel(officialId) {
     const panel = document.getElementById('skillsPanel_' + officialId);
     const open = panel.style.display !== 'none';
     if (open) { panel.style.display = 'none'; return; }
     const qualified = window._skillsByOfficial[officialId] || new Set();
+    const enabledPositions = await getEnabledPositionSet();
+    const ACTIVE_SKILL_POSITIONS = SKILL_POSITIONS.filter(pos => enabledPositions.has(pos));
     panel.innerHTML = '<div style="font-size:12px; color:var(--muted-text); margin:8px 0 10px;">Positions this official is qualified for. Unchecked positions won\'t appear as options in the Scheduling Matrix.</div>'
       + '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 16px;">'
-      + SKILL_POSITIONS.map(pos => {
+      + ACTIVE_SKILL_POSITIONS.map(pos => {
           const checked = qualified.has(pos);
           return '<label style="display:flex; align-items:center; gap:8px; font-size:12px;"><input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="toggleSkill(\'' + officialId + '\', \'' + pos.replace(/'/g, "\\'") + '\', this.checked)">' + pos.replace(/^(\w)(.*)$/, (m, a, b) => a + b.toLowerCase()) + '</label>';
         }).join('')
@@ -1002,7 +1023,11 @@
       if (qualified) window._skillsByOfficial[officialId].add(position.toUpperCase());
       else window._skillsByOfficial[officialId].delete(position.toUpperCase());
       const countEl = document.getElementById('skillCount_' + officialId);
-      if (countEl) countEl.textContent = window._skillsByOfficial[officialId].size + '/' + SKILL_POSITIONS.length;
+      if (countEl) {
+        const enabledPositions = await getEnabledPositionSet();
+        const activeCount = SKILL_POSITIONS.filter(pos => enabledPositions.has(pos)).length;
+        countEl.textContent = window._skillsByOfficial[officialId].size + '/' + activeCount;
+      }
       showToast('✓ Saved');
     } else {
       showToast(res.msg || 'Failed to update skill');
