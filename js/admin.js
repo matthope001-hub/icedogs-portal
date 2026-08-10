@@ -1110,7 +1110,32 @@
   }
 
 
-  function confirmDeleteOfficial(id) {
+  async function confirmDeleteOfficial(id) {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const { data: assignments } = await sb
+      .from('assignments')
+      .select('position, games(game_number, date, opponent_name)')
+      .eq('official_id', id);
+
+    const upcoming = (assignments || [])
+      .filter(a => a.games && a.games.date >= todayStr)
+      .sort((a, b) => a.games.date.localeCompare(b.games.date));
+
+    if (upcoming.length) {
+      const gameLines = upcoming.map(a => {
+        const dateLabel = new Date(a.games.date + "T12:00:00").toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        return '#' + a.games.game_number + ' vs ' + a.games.opponent_name + ' (' + dateLabel + ') — ' + a.position;
+      }).join('\n');
+      showConfirm(
+        'Currently Scheduled',
+        'This official is still assigned to ' + upcoming.length + ' upcoming game' + (upcoming.length !== 1 ? 's' : '') + ':\n\n' + gameLines + '\n\nReassign these positions in the Scheduling Matrix before deleting this official.',
+        () => {},
+        'Got It',
+        false
+      );
+      return;
+    }
+
     showConfirm('Delete Official?', 'This cannot be undone.', async () => {
       showSaving('Deleting...');
       const res = await callAdminAction('delete_official', { id });
