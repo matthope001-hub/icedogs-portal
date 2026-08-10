@@ -115,6 +115,13 @@
       + '<button class="btn-primary" onclick="submitChangePin()">Update PIN</button>'
       + '<div id="pinChangeMsg" style="display:none; font-size:12px; font-weight:700; text-align:center; margin-top:10px;"></div>'
       + '</div>'
+      + '<div class="card" style="margin-top:14px;">'
+      + '<div style="font-weight:900; font-size:14px; margin-bottom:6px;">📅 CALENDAR SYNC</div>'
+      + '<div style="font-size:12px; color:var(--muted-text); margin-bottom:14px; line-height:1.5;">Subscribe once in your phone or computer calendar to see your assigned games automatically. Your device syncs on its own schedule — changes may take a few hours to appear. Always check the portal before game day.</div>'
+      + '<input type="text" readonly id="icsUrlField" value="' + esc(ICS_FEED_URL + (sessionOfficial.icsToken || '')) + '" onclick="this.select()" style="font-size:12px;">'
+      + '<button class="btn-primary" onclick="copyIcsUrl()">Copy Calendar Link</button>'
+      + '<div id="icsCopyMsg" style="display:none; font-size:12px; font-weight:700; text-align:center; margin-top:10px;"></div>'
+      + '</div>'
       + '<div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--ios-card); border-radius:12px; border:1px solid var(--ios-sep); margin-top:14px;">'
       + '<div><div style="font-weight:800; font-size:14px;">🌙 Dark Mode</div><div style="font-size:11px; color:var(--muted-text); margin-top:2px;">Switch to a darker colour scheme</div></div>'
       + '<label class="switch"><input type="checkbox" id="darkModeToggle" ' + (document.body.classList.contains('dark-mode') ? 'checked' : '') + ' onchange="toggleDarkMode(this.checked)"><span class="slider"></span></label></div>'
@@ -171,6 +178,19 @@
 
 
   const CHANGE_PIN_URL = "https://fcehtovermlilpvwcksl.supabase.co/functions/v1/change-pin";
+  const ICS_FEED_URL = "https://fcehtovermlilpvwcksl.supabase.co/functions/v1/ics-feed?token=";
+
+  async function copyIcsUrl() {
+    const field = document.getElementById('icsUrlField');
+    const msgEl = document.getElementById('icsCopyMsg');
+    try {
+      await navigator.clipboard.writeText(field.value);
+      msgEl.style.display = 'block'; msgEl.style.color = '#166534'; msgEl.textContent = '✓ Copied! Paste this into your calendar app\'s "Subscribe by URL" option.';
+    } catch (e) {
+      field.select();
+      msgEl.style.display = 'block'; msgEl.style.color = 'var(--muted-text)'; msgEl.textContent = 'Select the link above and copy it manually.';
+    }
+  }
 
 
   function togglePinVisibility(inputId, btn) {
