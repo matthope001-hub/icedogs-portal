@@ -359,12 +359,28 @@
     'PA ANNOUNCER': 'PA Announcer',
   };
 
+  // Display order for the Position Setup grid — paired positions (Game Clock/
+  // OHL Gamesheet, both Penalty Boxes, both Goal Judges, etc.) land on the
+  // same row since the grid fills left-to-right in this array's order.
+  const POSITION_SETUP_ORDER = [
+    'GAME CLOCK', 'OHL GAMESHEET',
+    'PENALTY BOX (1)', 'PENALTY BOX (2)',
+    'GOAL JUDGE (1)', 'GOAL JUDGE (2)',
+    'OFFICIAL SCORER', 'ONLINE COMPUTER',
+    'PA ANNOUNCER', 'PLUS/MINUS',
+    'SOG/FO COMPUTER', 'SOG/FO SHEET',
+    'VIDEO REPLAY', 'VIDEO TECH',
+  ];
+
   async function loadPositionSetupList() {
     const cont = document.getElementById('positionSetupList');
     if (!cont) return;
-    const { data: positions } = await sb.from('position_settings').select('position, enabled').order('position');
+    const { data: positions } = await sb.from('position_settings').select('position, enabled');
+    const sorted = (positions || []).slice().sort(
+      (a, b) => POSITION_SETUP_ORDER.indexOf(a.position) - POSITION_SETUP_ORDER.indexOf(b.position)
+    );
     cont.innerHTML = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:2px 14px;">'
-      + (positions || []).map(p => {
+      + sorted.map(p => {
           const label = POSITION_LABELS[p.position] || p.position;
           return '<div style="display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--ios-sep);">'
             + '<span style="font-size:12px; font-weight:700;">' + esc(label) + '</span>'
