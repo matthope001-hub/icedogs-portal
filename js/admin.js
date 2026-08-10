@@ -714,8 +714,8 @@
         + '<div><div style="font-weight:700; font-size:13px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + '</div>'
         + '<div style="font-size:11px; color:var(--muted-text);">' + dateLabel + ' @ ' + (g.time || 'TBD') + '</div></div>'
         + '<div style="display:flex; gap:6px;">'
-        + '<button onclick="openGameModal(window._gamesCache.find(x => x.id === \'' + g.id + '\'))" style="background:#f1f5f9; border:none; border-radius:6px; padding:6px 10px; font-size:11px; cursor:pointer;">Edit</button>'
-        + '<button onclick="confirmDeleteGame(\'' + g.id + '\')" style="background:#fff1f2; border:none; border-radius:6px; padding:6px 10px; font-size:11px; color:#991b1b; cursor:pointer;">Delete</button>'
+        + '<button onclick="openGameModal(window._gamesCache.find(x => x.id === \'' + g.id + '\'))" style="background:var(--ios-card); border:1px solid var(--ios-sep); border-radius:6px; padding:6px 10px; font-size:11px; color:var(--ios-text); cursor:pointer;">Edit</button>'
+        + '<button onclick="confirmDeleteGame(\'' + g.id + '\')" style="background:rgba(220,38,38,0.12); border:1px solid rgba(220,38,38,0.3); border-radius:6px; padding:6px 10px; font-size:11px; color:#dc2626; cursor:pointer;">Delete</button>'
         + '</div></div>';
     }).join('');
   }
@@ -755,8 +755,8 @@
       return '<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--ios-sep);">'
         + '<div style="display:flex; align-items:center; gap:10px;">' + logoImg + '<span style="font-size:13px; font-weight:700;">' + esc(t.name) + '</span></div>'
         + '<div style="display:flex; gap:6px;">'
-        + '<button onclick="openTeamModal(window._teamsCache.find(x => x.id === \'' + t.id + '\'))" style="background:#f1f5f9; border:none; border-radius:6px; padding:6px 10px; font-size:11px; cursor:pointer;">Edit</button>'
-        + '<button onclick="confirmDeleteTeam(\'' + t.id + '\')" style="background:#fff1f2; border:none; border-radius:6px; padding:6px 10px; font-size:11px; color:#991b1b; cursor:pointer;">Delete</button>'
+        + '<button onclick="openTeamModal(window._teamsCache.find(x => x.id === \'' + t.id + '\'))" style="background:var(--ios-card); border:1px solid var(--ios-sep); border-radius:6px; padding:6px 10px; font-size:11px; color:var(--ios-text); cursor:pointer;">Edit</button>'
+        + '<button onclick="confirmDeleteTeam(\'' + t.id + '\')" style="background:rgba(220,38,38,0.12); border:1px solid rgba(220,38,38,0.3); border-radius:6px; padding:6px 10px; font-size:11px; color:#dc2626; cursor:pointer;">Delete</button>'
         + '</div></div>';
     }).join('');
   }
@@ -925,7 +925,7 @@
         + inviteBtn
         + '<button onclick="toggleSkillsPanel(\'' + o.id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">Skills</button>'
         + '<button onclick="openOfficialModal(window._officialsCache.find(x => x.id === \'' + o.id + '\'))" style="flex:1; background:var(--ios-card); border:1px solid var(--ios-sep); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:var(--ios-text); cursor:pointer;">Edit</button>'
-        + '<button onclick="confirmDeleteOfficial(\'' + o.id + '\')" style="flex:1; background:#fff1f2; border:1px solid rgba(153,27,27,0.2); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#991b1b; cursor:pointer;">Delete</button>'
+        + '<button onclick="confirmDeleteOfficial(\'' + o.id + '\')" style="flex:1; background:rgba(220,38,38,0.12); border:1px solid rgba(220,38,38,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#dc2626; cursor:pointer;">Delete</button>'
         + '</div>'
         + '<div id="skillsPanel_' + o.id + '" style="display:none; padding-top:12px;"></div>'
         + '</div>';
@@ -946,7 +946,7 @@
           + '<div style="display:flex; gap:6px;">'
           + '<button onclick="toggleSkillsPanel(\'' + id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">Skills</button>'
           + '<button onclick="openFixedStaffModal(window._fixedByOfficial[\'' + id + '\'])" style="flex:1; background:var(--ios-card); border:1px solid var(--ios-sep); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:var(--ios-text); cursor:pointer;">Edit</button>'
-          + '<button onclick="confirmDeleteOfficial(\'' + id + '\')" style="flex:1; background:#fff1f2; border:1px solid rgba(153,27,27,0.2); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#991b1b; cursor:pointer;">Delete</button>'
+          + '<button onclick="confirmDeleteOfficial(\'' + id + '\')" style="flex:1; background:rgba(220,38,38,0.12); border:1px solid rgba(220,38,38,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#dc2626; cursor:pointer;">Delete</button>'
           + '</div>'
           + '<div id="skillsPanel_' + id + '" style="display:none; padding-top:12px;"></div>'
           + '</div>';
