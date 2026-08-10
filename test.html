@@ -106,7 +106,7 @@
   #confirmBox { background: var(--ios-card); border-radius: 20px; width: 100%; max-width: 340px; padding: 28px 24px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: modalSlideIn 0.3s ease; }
   #confirmBox .confirm-icon { font-size: 36px; margin-bottom: 10px; }
   #confirmBox .confirm-title { font-size: 17px; font-weight: 900; margin-bottom: 8px; color: var(--ios-text); }
-  #confirmBox .confirm-msg { font-size: 13px; color: var(--muted-text); margin-bottom: 22px; line-height: 1.5; }
+  #confirmBox .confirm-msg { font-size: 13px; color: var(--muted-text); margin-bottom: 22px; line-height: 1.5; white-space: pre-line; text-align: left; }
   #confirmBox .confirm-actions { display: flex; gap: 10px; }
   #confirmBox .confirm-actions button { flex: 1; height: 48px; border-radius: 12px; font-size: 14px; font-weight: 800; border: none; cursor: pointer; }
   .btn-cancel { background: #f1f5f9; color: #475569; }
@@ -515,7 +515,7 @@
     <div class="confirm-title" id="confirmTitle">Are you sure?</div>
     <div class="confirm-msg" id="confirmMsg"></div>
     <div class="confirm-actions">
-      <button class="btn-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-cancel" id="confirmCancelBtn" onclick="closeConfirm()">Cancel</button>
       <button class="btn-danger" id="confirmOkBtn">Delete</button>
     </div>
   </div>
