@@ -340,17 +340,38 @@
   }
 
 
+  // Correct display casing per position — acronyms (OHL, PA, SOG/FO) don't
+  // survive a simple first-letter-capitalize, so map them explicitly.
+  const POSITION_LABELS = {
+    'GAME CLOCK': 'Game Clock',
+    'OHL GAMESHEET': 'OHL Gamesheet',
+    'PENALTY BOX (1)': 'Penalty Box (1)',
+    'PENALTY BOX (2)': 'Penalty Box (2)',
+    'GOAL JUDGE (1)': 'Goal Judge (1)',
+    'GOAL JUDGE (2)': 'Goal Judge (2)',
+    'OFFICIAL SCORER': 'Official Scorer',
+    'SOG/FO COMPUTER': 'SOG/FO Computer',
+    'SOG/FO SHEET': 'SOG/FO Sheet',
+    'ONLINE COMPUTER': 'Online Computer',
+    'PLUS/MINUS': 'Plus/Minus',
+    'VIDEO TECH': 'Video Tech',
+    'VIDEO REPLAY': 'Video Replay',
+    'PA ANNOUNCER': 'PA Announcer',
+  };
+
   async function loadPositionSetupList() {
     const cont = document.getElementById('positionSetupList');
     if (!cont) return;
     const { data: positions } = await sb.from('position_settings').select('position, enabled').order('position');
-    cont.innerHTML = (positions || []).map(p => {
-      const label = p.position.replace(/^(\w)(.*)$/, (m, a, b) => a + b.toLowerCase());
-      return '<div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--ios-sep);">'
-        + '<span style="font-size:13px; font-weight:700;">' + esc(label) + '</span>'
-        + '<label class="switch"><input type="checkbox" ' + (p.enabled ? 'checked' : '') + ' onchange="togglePositionEnabled(\'' + p.position.replace(/'/g, "\\'") + '\', this.checked)"><span class="slider"></span></label>'
-        + '</div>';
-    }).join('');
+    cont.innerHTML = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:2px 14px;">'
+      + (positions || []).map(p => {
+          const label = POSITION_LABELS[p.position] || p.position;
+          return '<div style="display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--ios-sep);">'
+            + '<span style="font-size:12px; font-weight:700;">' + esc(label) + '</span>'
+            + '<label class="switch" style="transform:scale(0.72); transform-origin:right center;"><input type="checkbox" ' + (p.enabled ? 'checked' : '') + ' onchange="togglePositionEnabled(\'' + p.position.replace(/'/g, "\\'") + '\', this.checked)"><span class="slider"></span></label>'
+            + '</div>';
+        }).join('')
+      + '</div>';
   }
 
 
@@ -1008,7 +1029,7 @@
       + '<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 16px;">'
       + ACTIVE_SKILL_POSITIONS.map(pos => {
           const checked = qualified.has(pos);
-          return '<label style="display:flex; align-items:center; gap:8px; font-size:12px;"><input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="toggleSkill(\'' + officialId + '\', \'' + pos.replace(/'/g, "\\'") + '\', this.checked)">' + pos.replace(/^(\w)(.*)$/, (m, a, b) => a + b.toLowerCase()) + '</label>';
+          return '<label style="display:flex; align-items:center; gap:8px; font-size:12px;"><input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="toggleSkill(\'' + officialId + '\', \'' + pos.replace(/'/g, "\\'") + '\', this.checked)">' + esc(POSITION_LABELS[pos] || pos) + '</label>';
         }).join('')
       + '</div>'
       + '<div style="margin-top:10px; font-size:11px; color:var(--muted-text);">PA Announcer and Video Replay are managed separately under fixed roles.</div>';
