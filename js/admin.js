@@ -693,7 +693,7 @@
     showConfirm('Delete Game?', 'This also removes its assignments and availability records.', async () => {
       showSaving('Deleting...');
       const res = await callAdminAction('delete_game', { id });
-      if (res.success) { hideSaving('Deleted'); loadGamesList(); }
+      if (res.success) { hideSaving('Deleted!'); loadGamesList(); }
       else hideSavingError(res.msg || 'Failed to delete');
     });
   }
@@ -768,7 +768,7 @@
     showConfirm('Delete Team?', 'This does not affect existing games — their opponent name stays as text.', async () => {
       showSaving('Deleting...');
       const res = await callAdminAction('delete_team', { id });
-      if (res.success) { hideSaving('Deleted'); loadTeamsList(); }
+      if (res.success) { hideSaving('Deleted!'); loadTeamsList(); }
       else hideSavingError(res.msg || 'Failed to delete');
     });
   }
@@ -893,7 +893,7 @@
         + inviteBtn
         + '<button onclick="toggleSkillsPanel(\'' + o.id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">Skills</button>'
         + '<button onclick="openOfficialModal(window._officialsCache.find(x => x.id === \'' + o.id + '\'))" style="flex:1; background:var(--ios-card); border:1px solid var(--ios-sep); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:var(--ios-text); cursor:pointer;">Edit</button>'
-        + '<button onclick="confirmDeleteOfficial(\'' + o.id + '\')" style="flex:1; background:rgba(220,38,38,0.15); border:1px solid rgba(220,38,38,0.4); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#f87171; cursor:pointer;">Delete</button>'
+        + '<button onclick="confirmDeleteOfficial(\'' + o.id + '\')" style="flex:1; background:#fff1f2; border:none; border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#991b1b; cursor:pointer;">Delete</button>'
         + '</div>'
         + '<div id="skillsPanel_' + o.id + '" style="display:none; padding-top:12px;"></div>'
         + '</div>';
@@ -914,7 +914,7 @@
           + '<div style="display:flex; gap:6px;">'
           + '<button onclick="toggleSkillsPanel(\'' + id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">Skills</button>'
           + '<button onclick="openFixedStaffModal(window._fixedByOfficial[\'' + id + '\'])" style="flex:1; background:var(--ios-card); border:1px solid var(--ios-sep); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:var(--ios-text); cursor:pointer;">Edit</button>'
-          + '<button onclick="confirmDeleteOfficial(\'' + id + '\')" style="flex:1; background:rgba(220,38,38,0.15); border:1px solid rgba(220,38,38,0.4); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#f87171; cursor:pointer;">Delete</button>'
+          + '<button onclick="confirmDeleteOfficial(\'' + id + '\')" style="flex:1; background:#fff1f2; border:none; border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#991b1b; cursor:pointer;">Delete</button>'
           + '</div>'
           + '<div id="skillsPanel_' + id + '" style="display:none; padding-top:12px;"></div>'
           + '</div>';
@@ -1082,7 +1082,7 @@
     showConfirm('Delete Official?', 'This cannot be undone.', async () => {
       showSaving('Deleting...');
       const res = await callAdminAction('delete_official', { id });
-      if (res.success) { hideSaving('Deleted'); loadOfficialsList(); }
+      if (res.success) { hideSaving('Deleted!'); loadOfficialsList(); }
       else hideSavingError(res.msg || 'Failed to delete');
     });
   }
@@ -1151,7 +1151,7 @@
     showConfirm('Remove Broadcast?', 'Officials will no longer see this message.', async () => {
       showSaving('Removing...');
       const res = await callAdminAction('deactivate_broadcast', { id });
-      if (res.success) { hideSaving('Removed'); loadActiveBroadcasts(); }
+      if (res.success) { hideSaving('Removed!'); loadActiveBroadcasts(); }
       else hideSavingError(res.msg || 'Failed to remove');
     });
   }
@@ -1161,7 +1161,7 @@
     showConfirm('Wipe Games?', 'This also removes every assignment and availability record tied to those games. A backup snapshot is saved first. This cannot be undone from the app.', async () => {
       showSaving('Wiping games...');
       const res = await callAdminAction('wipe_games', {});
-      if (res.success) { hideSaving('Wiped'); loadGamesList(); loadMatrixMonths(); document.getElementById('matrixCont').innerHTML = ''; }
+      if (res.success) { hideSaving('Wiped!'); loadGamesList(); loadMatrixMonths(); document.getElementById('matrixCont').innerHTML = ''; }
       else hideSavingError(res.msg || 'Failed to wipe');
     });
   }
@@ -1171,7 +1171,7 @@
     showConfirm('Wipe Assignments?', 'Every official will be unassigned from every game. Games and availability are untouched. A backup snapshot is saved first.', async () => {
       showSaving('Wiping assignments...');
       const res = await callAdminAction('wipe_assignments', {});
-      if (res.success) { hideSaving('Wiped'); document.getElementById('matrixCont').innerHTML = ''; }
+      if (res.success) { hideSaving('Wiped!'); document.getElementById('matrixCont').innerHTML = ''; }
       else hideSavingError(res.msg || 'Failed to wipe');
     });
   }
@@ -1181,7 +1181,7 @@
     showConfirm('Wipe Availability?', 'Every official\'s submitted availability will be cleared. Games and assignments are untouched. A backup snapshot is saved first.', async () => {
       showSaving('Wiping availability...');
       const res = await callAdminAction('wipe_availability', {});
-      if (res.success) hideSaving('Wiped');
+      if (res.success) hideSaving('Wiped!');
       else hideSavingError(res.msg || 'Failed to wipe');
     });
   }
