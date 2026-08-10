@@ -417,7 +417,7 @@
 
   function fmtDateLabel(dateStr) {
     const d = new Date(dateStr + "T12:00:00");
-    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
 
