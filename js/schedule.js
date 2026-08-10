@@ -85,7 +85,7 @@
       + '</div>';
 
     if (me.profile_complete) {
-      html += '<div style="background:#fff8ed; border:1px solid #f59e0b; border-radius:12px; padding:14px 16px; margin-bottom:16px;">'
+      html += '<div style="background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); border-radius:12px; padding:14px 16px; margin-bottom:16px;">'
         + '<div style="font-weight:900; font-size:12px; color:#f59e0b; margin-bottom:4px;">🔒 PROFILE LOCKED</div>'
         + '<div style="font-size:12px; color:var(--muted-text); line-height:1.5;">To update your information, please contact an admin below.</div></div>';
     }
