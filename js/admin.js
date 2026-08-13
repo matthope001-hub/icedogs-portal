@@ -125,7 +125,11 @@
       if (!gamesByMonth[key]) gamesByMonth[key] = [];
       gamesByMonth[key].push(g.id);
     });
-    const months = Object.keys(gamesByMonth).sort();
+    const months = Object.keys(gamesByMonth).sort((a, b) => {
+      if (a === 'preseason') return -1;
+      if (b === 'preseason') return 1;
+      return a.localeCompare(b);
+    });
 
     if (!regularOfficials.length || !months.length) {
       cont.innerHTML = '<div class="empty-state">No data yet.</div>';
