@@ -183,7 +183,9 @@
         document.getElementById('profileModal').classList.remove('open');
         proceedAfterProfile(pendingUser);
       } else {
+        document.getElementById('profileModal').classList.remove('open');
         hideSavingError(data.msg || 'Save failed — try again');
+        showToast(data.msg || 'Save failed — please sign in from the login screen.');
       }
     } catch (e) {
       hideSavingError('Network error — try again');
@@ -457,6 +459,18 @@
 
     if (!data.success) {
       showToast(data.msg || 'This invite link is invalid.');
+      return;
+    }
+
+    // Guard against a stale/already-used invite link: if this official's profile
+    // is already complete, skip straight to login instead of showing the
+    // profile modal (which the server will then reject with 409, stranding
+    // the user on a screen with no way forward).
+    const { data: existing } = await sb.from('officials').select('profile_complete').eq('name', data.officialName).maybeSingle();
+    if (existing && existing.profile_complete) {
+      const picker = document.getElementById('userPicker');
+      picker.value = data.officialName;
+      proceedAfterProfile(data.officialName);
       return;
     }
 
