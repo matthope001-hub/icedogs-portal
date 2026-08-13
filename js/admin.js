@@ -469,7 +469,12 @@
 
   async function loadMatrixMonths() {
     const { data: games } = await sb.from('games').select('window_month').order('window_month');
-    const months = [...new Set((games || []).map(g => g.window_month))];
+    const monthsRaw = [...new Set((games || []).map(g => g.window_month))];
+    const months = monthsRaw.slice().sort((a, b) => {
+      if (a === 'preseason') return -1;
+      if (b === 'preseason') return 1;
+      return a.localeCompare(b);
+    });
     const { data: windows } = await sb.from('month_windows').select('month, label');
     const labelMap = {};
     (windows || []).forEach(w => { labelMap[w.month] = w.label; });
