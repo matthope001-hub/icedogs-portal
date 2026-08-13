@@ -951,12 +951,15 @@
 
     cont.innerHTML = regularOfficials.map(o => {
       const inviteBtn = o.email
-        ? '<button onclick="sendInviteFor(\'' + o.id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">Invite</button>'
+        ? '<button onclick="sendInviteFor(\'' + o.id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">' + (o.invite_sent_at ? 'Re-invite' : 'Invite') + '</button>'
+        : '';
+      const inviteStatus = o.invite_sent_at
+        ? ' · <span style="color:#5b6cff;">Invited ' + new Date(o.invite_sent_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + '</span>'
         : '';
       const skillCount = (skillsByOfficial[o.id] || new Set()).size;
       return '<div style="border-bottom:1px solid var(--ios-sep); padding:12px 0;">'
         + '<div style="font-weight:700; font-size:13px; margin-bottom:2px;">' + esc(o.name) + '</div>'
-        + '<div style="font-size:11px; color:var(--muted-text); margin-bottom:10px;">' + esc(o.role) + (o.email ? ' · ' + esc(o.email) : '') + (o.profile_complete ? '' : ' · <span style="color:#f59e0b;">Incomplete</span>') + ' · <span id="skillCount_' + o.id + '">' + skillCount + '/' + activeSkillPositionCount + '</span> skills</div>'
+        + '<div style="font-size:11px; color:var(--muted-text); margin-bottom:10px;">' + esc(o.role) + (o.email ? ' · ' + esc(o.email) : '') + (o.profile_complete ? '' : ' · <span style="color:#f59e0b;">Incomplete</span>') + inviteStatus + ' · <span id="skillCount_' + o.id + '">' + skillCount + '/' + activeSkillPositionCount + '</span> skills</div>'
         + '<div style="display:flex; gap:6px;">'
         + inviteBtn
         + '<button onclick="toggleSkillsPanel(\'' + o.id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">Skills</button>'
@@ -1138,7 +1141,7 @@
         body: JSON.stringify({ token: sessionToken, officialName: official.name, email: official.email })
       });
       const data = await res.json();
-      if (data.success) hideSaving('Invite sent!');
+      if (data.success) { hideSaving('Invite sent!'); loadOfficialsList(); }
       else hideSavingError(data.msg || 'Failed to send invite');
     } catch (e) {
       hideSavingError('Network error — try again');
