@@ -437,7 +437,12 @@
 
 
   async function loadMonthToggleList() {
-    const { data: months } = await sb.from('month_windows').select('month, label, status').order('month');
+    const { data: raw } = await sb.from('month_windows').select('month, label, status').order('month');
+    const months = (raw || []).slice().sort((a, b) => {
+      if (a.month === 'preseason') return -1;
+      if (b.month === 'preseason') return 1;
+      return a.month.localeCompare(b.month);
+    });
     const monthCont = document.getElementById('monthToggleList');
     monthCont.innerHTML = (months || []).map(m => {
       const label = m.label || (/^\d{4}-\d{2}$/.test(m.month) ? new Date(m.month + "T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : m.month);
