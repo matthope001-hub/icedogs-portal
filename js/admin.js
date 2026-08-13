@@ -488,7 +488,7 @@
     if (!month) { cont.innerHTML = ''; return; }
     cont.innerHTML = '<div style="padding:14px; text-align:center; color:var(--muted-text); font-size:12px;">Loading...</div>';
 
-    const { data: games } = await sb.from('games').select('id, game_number, date, time, opponent_name, schedule_locked')
+    const { data: games } = await sb.from('games').select('id, game_number, date, time, opponent_name, schedule_locked, type')
       .eq('window_month', month).order('date');
     const gameList = games || [];
     if (!gameList.length) { cont.innerHTML = '<div class="empty-state">No games this month.</div>'; return; }
@@ -530,13 +530,16 @@
     });
 
     const ALWAYS_AVAILABLE_BACKUP = ["Dave Taylor"];
+    const PRESEASON_EXCLUDED = ["PLUS/MINUS", "VIDEO TECH", "VIDEO REPLAY"];
 
     cont.innerHTML = gameList.map(g => {
       const dateLabel = new Date(g.date + "T12:00:00").toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       const gameAssignments = assignByGame[g.id] || {};
       const pool = (availByGame[g.id] || []).slice().sort();
+      const isPreseason = g.type === '(PRE)';
+      const GAME_POSITIONS = isPreseason ? ACTIVE_POSITIONS.filter(pos => !PRESEASON_EXCLUDED.includes(pos)) : ACTIVE_POSITIONS;
 
-      const rows = ACTIVE_POSITIONS.map(pos => {
+      const rows = GAME_POSITIONS.map(pos => {
         const current = gameAssignments[pos] || '';
         const isFixed = FIXED_POSITIONS.includes(pos);
         let options;
@@ -560,8 +563,8 @@
       }).join('');
 
       const matrixId = 'matrix_' + g.id;
-      const filledCount = ACTIVE_POSITIONS.filter(pos => gameAssignments[pos]).length;
-      const totalPositions = ACTIVE_POSITIONS.length;
+      const filledCount = GAME_POSITIONS.filter(pos => gameAssignments[pos]).length;
+      const totalPositions = GAME_POSITIONS.length;
       const isComplete = filledCount === totalPositions;
       const badgeColor = isComplete ? '#166534' : (filledCount === 0 ? '#991b1b' : '#92400e');
       const badgeBg = isComplete ? '#dcfce7' : (filledCount === 0 ? '#fff1f2' : '#fff8ed');
