@@ -245,7 +245,6 @@
       document.getElementById('editorPositionLabel').textContent = sessionEditorPosition + ' SCHEDULING';
     }
     switchAppTab('avail');
-    loadAvailMonths();
   }
 
 
@@ -270,6 +269,10 @@
         });
       }
     });
+    // Every tab refetches on switch — this is what previously caused the reported bug:
+    // Avail had no reload call here at all, so it only ever loaded once at login and
+    // a month activated later never showed up until a full page reload.
+    if (tab === 'avail') loadAvailMonths();
     if (tab === 'myGames') loadMyGames();
     if (tab === 'crew') loadCrew();
     if (tab === 'season') loadSeason();
