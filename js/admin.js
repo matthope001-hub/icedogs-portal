@@ -140,6 +140,19 @@
     const labelMap = {};
     (windows || []).forEach(w => { labelMap[w.month] = w.label; });
 
+    function monthAbbrev(m) {
+      if (m === 'preseason') return 'Pre';
+      const label = labelMap[m];
+      if (label && label.includes('/')) {
+        // Merged window (e.g. "Sep/Oct 2026") — abbreviate each side to 3 letters
+        return label.split('/').map(part => part.trim().slice(0, 3)).join('/');
+      }
+      if (/^\d{4}-\d{2}$/.test(m)) {
+        return new Date(m + '-01T12:00:00').toLocaleDateString('en-US', { month: 'short' });
+      }
+      return (label || m).split(' ')[0].slice(0, 3);
+    }
+
     const { data: availRows } = await sb.from('availability').select('official_id, game_id');
     const submittedSetByOfficial = {};
     (availRows || []).forEach(a => {
@@ -150,8 +163,7 @@
     let html = '<table style="width:100%; border-collapse:collapse; font-size:11px; table-layout:fixed;">';
     html += '<tr style="background:var(--ios-bg);"><th style="padding:8px 4px; text-align:left; position:sticky; left:0; background:var(--ios-bg); white-space:nowrap; font-size:10px; text-transform:uppercase; letter-spacing:0.2px; color:var(--muted-text); width:78px;">Official</th>';
     months.forEach(m => {
-      const short = labelMap[m] ? labelMap[m].split(/[\s/]/)[0] : (/^\d{4}-\d{2}$/.test(m) ? new Date(m + '-01T12:00:00').toLocaleDateString('en-US', { month: 'short' }) : m);
-      html += '<th style="padding:8px 2px; text-align:center; white-space:nowrap; font-size:10px; text-transform:uppercase; letter-spacing:0.2px; color:var(--muted-text);">' + esc(short) + '</th>';
+      html += '<th style="padding:8px 2px; text-align:center; white-space:nowrap; font-size:10px; text-transform:uppercase; letter-spacing:0.2px; color:var(--muted-text);">' + esc(monthAbbrev(m)) + '</th>';
     });
     html += '</tr>';
 
