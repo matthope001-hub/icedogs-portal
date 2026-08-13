@@ -1133,6 +1133,23 @@
   async function sendInviteFor(id) {
     const official = window._officialsCache.find(x => x.id === id);
     if (!official || !official.email) { showToast('This official needs an email on file first'); return; }
+
+    if (official.profile_complete) {
+      showConfirm(
+        'Profile Already Complete',
+        official.name + ' has already completed their profile. Sending an invite will email them a new link, but it won\'t prompt them to re-enter their info — they\'ll just be logged in as normal.',
+        () => doSendInvite(official),
+        'Send Anyway',
+        true
+      );
+      return;
+    }
+
+    doSendInvite(official);
+  }
+
+
+  async function doSendInvite(official) {
     showSaving('Sending invite...');
     try {
       const res = await fetch(SEND_INVITE_URL, {
