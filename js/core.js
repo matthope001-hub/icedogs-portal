@@ -250,6 +250,35 @@
   }
 
 
+  const BROADCAST_TYPE_CFG = {
+    urgent:   { icon: '🚨', label: 'URGENT',   color: '#C8102E', bg: 'rgba(200,16,46,0.08)',  border: 'rgba(200,16,46,0.3)'  },
+    reminder: { icon: '⏰', label: 'REMINDER', color: '#b45309', bg: 'rgba(180,83,9,0.08)',   border: 'rgba(180,83,9,0.3)'   },
+    info:     { icon: 'ℹ️', label: 'NOTICE',   color: '#1d4ed8', bg: 'rgba(29,78,216,0.08)',  border: 'rgba(29,78,216,0.3)'  }
+  };
+
+  async function loadAppBroadcastNotice() {
+    const cont = document.getElementById('appBroadcastNotice');
+    if (!cont) return;
+    const nowIso = new Date().toISOString();
+    const { data: broadcasts } = await sb
+      .from('broadcasts')
+      .select('message, type, sent_at, expires_at')
+      .eq('active', true)
+      .order('sent_at', { ascending: false });
+    const active = (broadcasts || []).filter(b => !b.expires_at || b.expires_at >= nowIso);
+    if (!active.length) { cont.innerHTML = ''; return; }
+    cont.innerHTML = active.map(b => {
+      const cfg = BROADCAST_TYPE_CFG[b.type] || BROADCAST_TYPE_CFG.info;
+      const dateLabel = new Date(b.sent_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return '<div style="background:' + cfg.bg + '; border:1px solid ' + cfg.border + '; border-radius:12px; padding:12px 14px; margin-bottom:12px; display:flex; align-items:flex-start; gap:10px;">'
+        + '<span style="font-size:18px; flex-shrink:0;">' + cfg.icon + '</span>'
+        + '<div style="flex:1; min-width:0;"><div style="font-size:11px; font-weight:900; color:' + cfg.color + '; text-transform:uppercase;">' + cfg.label + '</div>'
+        + '<div style="font-size:13px; color:var(--ios-text); margin-top:3px; line-height:1.4;">' + esc(b.message) + '</div>'
+        + '<div style="font-size:10px; color:var(--muted-text); margin-top:4px;">Posted ' + dateLabel + '</div></div></div>';
+    }).join('');
+  }
+
+
   function switchAppTab(tab) {
     document.getElementById('appTabAvail').style.display = tab === 'avail' ? 'block' : 'none';
     document.getElementById('appTabMyGames').style.display = tab === 'myGames' ? 'block' : 'none';
@@ -274,6 +303,7 @@
     // Every tab refetches on switch — this is what previously caused the reported bug:
     // Avail had no reload call here at all, so it only ever loaded once at login and
     // a month activated later never showed up until a full page reload.
+    loadAppBroadcastNotice();
     if (tab === 'avail') loadAvailMonths();
     if (tab === 'myGames') loadMyGames();
     if (tab === 'crew') loadCrew();
