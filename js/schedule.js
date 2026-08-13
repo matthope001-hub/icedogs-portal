@@ -7,7 +7,12 @@
 
   async function loadEditorMonths() {
     const { data: games } = await sb.from('games').select('window_month').order('window_month');
-    const months = [...new Set((games || []).map(g => g.window_month))];
+    const monthsRaw = [...new Set((games || []).map(g => g.window_month))];
+    const months = monthsRaw.slice().sort((a, b) => {
+      if (a === 'preseason') return -1;
+      if (b === 'preseason') return 1;
+      return a.localeCompare(b);
+    });
     const { data: windows } = await sb.from('month_windows').select('month, label');
     const labelMap = {};
     (windows || []).forEach(w => { labelMap[w.month] = w.label; });
@@ -473,7 +478,12 @@
 
 
   async function loadAvailMonths() {
-    const { data: months } = await sb.from('month_windows').select('month, label, status').eq('status', 'Active').order('month');
+    const { data: monthsRaw } = await sb.from('month_windows').select('month, label, status').eq('status', 'Active').order('month');
+    const months = (monthsRaw || []).slice().sort((a, b) => {
+      if (a.month === 'preseason') return -1;
+      if (b.month === 'preseason') return 1;
+      return a.month.localeCompare(b.month);
+    });
     const { data: reasons } = await sb.from('reasons').select('label').order('sort_order');
     reasonOptions = (reasons || []).map(r => r.label);
 
