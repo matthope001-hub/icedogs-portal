@@ -6,13 +6,16 @@
 
 
   async function loadEditorMonths() {
-    const { data: games } = await sb.from('games').select('date').order('date');
-    const months = [...new Set((games || []).map(g => g.date.slice(0, 7)))];
+    const { data: games } = await sb.from('games').select('window_month').order('window_month');
+    const months = [...new Set((games || []).map(g => g.window_month))];
+    const { data: windows } = await sb.from('month_windows').select('month, label');
+    const labelMap = {};
+    (windows || []).forEach(w => { labelMap[w.month] = w.label; });
     const sel = document.getElementById('editorMonthSelect');
     sel.innerHTML = '<option value="">Select Month...</option>';
     months.forEach(m => {
-      const label = new Date(m + "-01T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      sel.innerHTML += '<option value="' + m + '-01">' + label + '</option>';
+      const label = labelMap[m] || (/^\d{4}-\d{2}$/.test(m) ? new Date(m + "-01T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : m);
+      sel.innerHTML += '<option value="' + m + '">' + esc(label) + '</option>';
     });
   }
 
@@ -22,14 +25,10 @@
     const cont = document.getElementById('editorGameList');
     if (!month) { cont.innerHTML = ''; return; }
     cont.innerHTML = '<div style="padding:14px; text-align:center; color:var(--muted-text); font-size:12px;">Loading...</div>';
-
-    const nextMonth = new Date(month + "T00:00:00");
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-    const nextMonthStr = nextMonth.toISOString().slice(0, 10);
     const position = sessionEditorPosition;
 
     const { data: games } = await sb.from('games').select('id, game_number, date, time, opponent_name')
-      .gte('date', month).lt('date', nextMonthStr).order('date');
+      .eq('window_month', month).order('date');
     const gameList = games || [];
     if (!gameList.length) { cont.innerHTML = '<div class="empty-state">No games this month.</div>'; return; }
 
@@ -474,15 +473,15 @@
 
 
   async function loadAvailMonths() {
-    const { data: months } = await sb.from('month_windows').select('month, status').eq('status', 'Active').order('month');
+    const { data: months } = await sb.from('month_windows').select('month, label, status').eq('status', 'Active').order('month');
     const { data: reasons } = await sb.from('reasons').select('label').order('sort_order');
     reasonOptions = (reasons || []).map(r => r.label);
 
     const sel = document.getElementById('availMonthSelect');
     sel.innerHTML = '<option value="">Select Month...</option>';
     (months || []).forEach(m => {
-      const label = new Date(m.month + "T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      sel.innerHTML += '<option value="' + m.month + '">' + label + '</option>';
+      const label = m.label || (/^\d{4}-\d{2}$/.test(m.month) ? new Date(m.month + "-01T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : m.month);
+      sel.innerHTML += '<option value="' + m.month + '">' + esc(label) + '</option>';
     });
   }
 
@@ -496,15 +495,10 @@
 
     cont.innerHTML = '<div style="padding:14px; text-align:center; color:var(--muted-text); font-size:12px;">Loading games...</div>';
 
-    const nextMonth = new Date(month + "T00:00:00");
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-    const nextMonthStr = nextMonth.toISOString().slice(0, 10);
-
     const { data: games } = await sb
       .from('games')
       .select('id, game_number, date, time, opponent_name')
-      .gte('date', month)
-      .lt('date', nextMonthStr)
+      .eq('window_month', month)
       .order('date');
 
     const { data: existing } = await sb
