@@ -118,10 +118,10 @@
     const fixedStaffIds = new Set((fixedStaff || []).map(r => r.official_id));
     const regularOfficials = (officials || []).filter(o => !fixedStaffIds.has(o.id));
 
-    const { data: games } = await sb.from('games').select('id, date').order('date');
+    const { data: games } = await sb.from('games').select('id, window_month').order('window_month');
     const gamesByMonth = {};
     (games || []).forEach(g => {
-      const key = g.date.slice(0, 7);
+      const key = g.window_month;
       if (!gamesByMonth[key]) gamesByMonth[key] = [];
       gamesByMonth[key].push(g.id);
     });
@@ -131,6 +131,10 @@
       cont.innerHTML = '<div class="empty-state">No data yet.</div>';
       return;
     }
+
+    const { data: windows } = await sb.from('month_windows').select('month, label');
+    const labelMap = {};
+    (windows || []).forEach(w => { labelMap[w.month] = w.label; });
 
     const { data: availRows } = await sb.from('availability').select('official_id, game_id');
     const submittedSetByOfficial = {};
@@ -142,8 +146,8 @@
     let html = '<table style="width:100%; border-collapse:collapse; font-size:11px; table-layout:fixed;">';
     html += '<tr style="background:var(--ios-bg);"><th style="padding:8px 4px; text-align:left; position:sticky; left:0; background:var(--ios-bg); white-space:nowrap; font-size:10px; text-transform:uppercase; letter-spacing:0.2px; color:var(--muted-text); width:78px;">Official</th>';
     months.forEach(m => {
-      const short = new Date(m + '-01T12:00:00').toLocaleDateString('en-US', { month: 'short' });
-      html += '<th style="padding:8px 2px; text-align:center; white-space:nowrap; font-size:10px; text-transform:uppercase; letter-spacing:0.2px; color:var(--muted-text);">' + short + '</th>';
+      const short = labelMap[m] ? labelMap[m].split(/[\s/]/)[0] : (/^\d{4}-\d{2}$/.test(m) ? new Date(m + '-01T12:00:00').toLocaleDateString('en-US', { month: 'short' }) : m);
+      html += '<th style="padding:8px 2px; text-align:center; white-space:nowrap; font-size:10px; text-transform:uppercase; letter-spacing:0.2px; color:var(--muted-text);">' + esc(short) + '</th>';
     });
     html += '</tr>';
 
@@ -251,12 +255,15 @@
     document.getElementById('adminAvailSaveBtn').style.display = 'none';
     if (!officialId) { monthSel.style.display = 'none'; return; }
 
-    const { data: games } = await sb.from('games').select('date').order('date');
-    const months = [...new Set((games || []).map(g => g.date.slice(0, 7)))];
+    const { data: games } = await sb.from('games').select('window_month').order('window_month');
+    const months = [...new Set((games || []).map(g => g.window_month))];
+    const { data: windows } = await sb.from('month_windows').select('month, label');
+    const labelMap = {};
+    (windows || []).forEach(w => { labelMap[w.month] = w.label; });
     monthSel.innerHTML = '<option value="">-- Select Month --</option>';
     months.forEach(m => {
-      const label = new Date(m + "-01T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      monthSel.innerHTML += '<option value="' + m + '-01">' + label + '</option>';
+      const label = labelMap[m] || (/^\d{4}-\d{2}$/.test(m) ? new Date(m + "-01T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : m);
+      monthSel.innerHTML += '<option value="' + m + '">' + esc(label) + '</option>';
     });
     monthSel.style.display = 'block';
   }
@@ -274,12 +281,8 @@
 
     cont.innerHTML = '<div style="padding:14px; text-align:center; color:var(--muted-text); font-size:12px;">Loading...</div>';
 
-    const nextMonth = new Date(month + "T00:00:00");
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-    const nextMonthStr = nextMonth.toISOString().slice(0, 10);
-
     const { data: games } = await sb.from('games').select('id, game_number, date, time, opponent_name')
-      .gte('date', month).lt('date', nextMonthStr).order('date');
+      .eq('window_month', month).order('date');
     const { data: existing } = await sb.from('availability').select('game_id, status, reason').eq('official_id', officialId);
     const existingMap = {};
     (existing || []).forEach(e => { existingMap[e.game_id] = e; });
@@ -434,16 +437,16 @@
 
 
   async function loadMonthToggleList() {
-    const { data: months } = await sb.from('month_windows').select('month, status').order('month');
+    const { data: months } = await sb.from('month_windows').select('month, label, status').order('month');
     const monthCont = document.getElementById('monthToggleList');
     monthCont.innerHTML = (months || []).map(m => {
-      const label = new Date(m.month + "T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const label = m.label || (/^\d{4}-\d{2}$/.test(m.month) ? new Date(m.month + "T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : m.month);
       const isActive = m.status === 'Active';
       const notifyBtn = isActive
-        ? '<button onclick="confirmNotifyAvailability(\'' + m.month.slice(0, 7) + '\', \'' + label + '\')" style="background:#eef2ff; border:none; border-radius:6px; padding:5px 10px; font-size:11px; color:#3730a3; cursor:pointer; margin-right:8px;">Notify</button>'
+        ? '<button onclick="confirmNotifyAvailability(\'' + m.month + '\', \'' + esc(label) + '\')" style="background:#eef2ff; border:none; border-radius:6px; padding:5px 10px; font-size:11px; color:#3730a3; cursor:pointer; margin-right:8px;">Notify</button>'
         : '';
       return '<div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--ios-sep);">'
-        + '<span style="font-size:13px; font-weight:700;">' + label + '</span>'
+        + '<span style="font-size:13px; font-weight:700;">' + esc(label) + '</span>'
         + '<div style="display:flex; align-items:center;">' + notifyBtn + '<label class="switch"><input type="checkbox" ' + (isActive ? 'checked' : '') + ' onchange="toggleMonth(\'' + m.month + '\', this.checked)"><span class="slider"></span></label></div></div>';
     }).join('');
   }
@@ -460,13 +463,16 @@
 
 
   async function loadMatrixMonths() {
-    const { data: games } = await sb.from('games').select('date').order('date');
-    const months = [...new Set((games || []).map(g => g.date.slice(0, 7)))];
+    const { data: games } = await sb.from('games').select('window_month').order('window_month');
+    const months = [...new Set((games || []).map(g => g.window_month))];
+    const { data: windows } = await sb.from('month_windows').select('month, label');
+    const labelMap = {};
+    (windows || []).forEach(w => { labelMap[w.month] = w.label; });
     const sel = document.getElementById('matrixMonthSelect');
     sel.innerHTML = '<option value="">Select Month...</option>';
     months.forEach(m => {
-      const label = new Date(m + "-01T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      sel.innerHTML += '<option value="' + m + '">' + label + '</option>';
+      const label = labelMap[m] || (/^\d{4}-\d{2}$/.test(m) ? new Date(m + "-01T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : m);
+      sel.innerHTML += '<option value="' + m + '">' + esc(label) + '</option>';
     });
   }
 
@@ -477,12 +483,8 @@
     if (!month) { cont.innerHTML = ''; return; }
     cont.innerHTML = '<div style="padding:14px; text-align:center; color:var(--muted-text); font-size:12px;">Loading...</div>';
 
-    const nextMonth = new Date(month + "-01T00:00:00");
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-    const nextMonthStr = nextMonth.toISOString().slice(0, 10);
-
     const { data: games } = await sb.from('games').select('id, game_number, date, time, opponent_name, schedule_locked')
-      .gte('date', month + '-01').lt('date', nextMonthStr).order('date');
+      .eq('window_month', month).order('date');
     const gameList = games || [];
     if (!gameList.length) { cont.innerHTML = '<div class="empty-state">No games this month.</div>'; return; }
 
