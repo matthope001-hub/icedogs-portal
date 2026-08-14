@@ -282,6 +282,22 @@
               <div id="qualCoverageCont"></div>
             </div>
           </div>
+
+          <div class="card" style="padding:0; overflow:hidden;">
+            <div onclick="toggleProfileStatusAccordion()" style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; cursor:pointer;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:16px;">📝</span>
+                <div>
+                  <div style="font-weight:900; font-size:14px;">PROFILE STATUS</div>
+                  <div style="font-size:11px; color:var(--muted-text); margin-top:1px;">Who's completed their profile and who hasn't</div>
+                </div>
+              </div>
+              <span id="profileStatusChevron" style="font-size:11px; color:var(--muted-text);">▼</span>
+            </div>
+            <div id="profileStatusBody" style="display:none; border-top:1px solid var(--ios-sep); padding:14px 16px;">
+              <div id="profileStatusCont"></div>
+            </div>
+          </div>
         </div>
 
         <div id="adminSubAvail" style="display:none;">
