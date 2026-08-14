@@ -974,7 +974,7 @@
   async function loadOfficialsList() {
     loadMailingList();
     const { data: officials } = await sb.from('officials').select('*').order('name');
-    const { data: restrictions } = await sb.from('role_restrictions').select('official_id, position, officials(id, name, email, phone, role, profile_complete)').in('position', ['PA ANNOUNCER', 'VIDEO REPLAY']);
+    const { data: restrictions } = await sb.from('role_restrictions').select('official_id, position, officials(id, name, email, phone, role, profile_complete, invite_sent_at)').in('position', ['PA ANNOUNCER', 'VIDEO REPLAY']);
     const cont = document.getElementById('officialsListCont');
     const fixedCont = document.getElementById('fixedStaffListCont');
 
@@ -1031,11 +1031,18 @@
         const entry = fixedByOfficial[id];
         const positionBadges = entry.positions.map(p => '<span style="font-size:10px; font-weight:900; background:rgba(59,73,223,0.15); color:#5b6cff; padding:2px 8px; border-radius:20px; margin-right:4px;">' + esc(p) + '</span>').join('');
         const skillCount = (skillsByOfficial[id] || new Set()).size;
+        const inviteBtn = entry.info.email
+          ? '<button onclick="sendInviteFor(\'' + id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">' + (entry.info.invite_sent_at ? 'Re-invite' : 'Invite') + '</button>'
+          : '';
+        const inviteStatus = entry.info.invite_sent_at
+          ? ' · <span style="color:#5b6cff;">Invited ' + new Date(entry.info.invite_sent_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + '</span>'
+          : '';
         return '<div style="border-bottom:1px solid var(--ios-sep); padding:12px 0;">'
           + '<div style="font-weight:700; font-size:13px; margin-bottom:4px;">' + esc(entry.info.name) + '</div>'
           + '<div style="margin-bottom:4px;">' + positionBadges + '</div>'
-          + '<div style="font-size:11px; color:var(--muted-text); margin-bottom:10px;">Backup skills: <span id="skillCount_' + id + '">' + skillCount + '/' + activeSkillPositionCount + '</span></div>'
+          + '<div style="font-size:11px; color:var(--muted-text); margin-bottom:10px;">Backup skills: <span id="skillCount_' + id + '">' + skillCount + '/' + activeSkillPositionCount + '</span>' + inviteStatus + '</div>'
           + '<div style="display:flex; gap:6px;">'
+          + inviteBtn
           + '<button onclick="toggleSkillsPanel(\'' + id + '\')" style="flex:1; background:rgba(59,73,223,0.12); border:1px solid rgba(59,73,223,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#5b6cff; cursor:pointer;">Skills</button>'
           + '<button onclick="openFixedStaffModal(window._fixedByOfficial[\'' + id + '\'])" style="flex:1; background:var(--ios-card); border:1px solid var(--ios-sep); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:var(--ios-text); cursor:pointer;">Edit</button>'
           + '<button onclick="confirmDeleteOfficial(\'' + id + '\')" style="flex:1; background:rgba(220,38,38,0.12); border:1px solid rgba(220,38,38,0.3); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:#dc2626; cursor:pointer;">Delete</button>'
