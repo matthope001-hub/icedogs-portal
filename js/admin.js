@@ -970,6 +970,54 @@
   }
 
 
+  let _profileStatusOpen = false;
+
+  function toggleProfileStatusAccordion() {
+    _profileStatusOpen = !_profileStatusOpen;
+    document.getElementById('profileStatusBody').style.display = _profileStatusOpen ? 'block' : 'none';
+    document.getElementById('profileStatusChevron').textContent = _profileStatusOpen ? '▲' : '▼';
+    if (_profileStatusOpen) loadProfileStatus();
+  }
+
+
+  async function loadProfileStatus() {
+    const cont = document.getElementById('profileStatusCont');
+    cont.innerHTML = '<div style="padding:14px; text-align:center; color:var(--muted-text); font-size:12px;">Loading...</div>';
+
+    const { data: officials } = await sb.from('officials').select('name, email, profile_complete, invite_sent_at').order('name');
+    const all = officials || [];
+    const complete = all.filter(o => o.profile_complete);
+    const incomplete = all.filter(o => !o.profile_complete);
+
+    function row(o) {
+      const status = o.invite_sent_at
+        ? 'Invited ' + new Date(o.invite_sent_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : (o.email ? 'Not yet invited' : 'No email on file');
+      return '<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--ios-sep);">'
+        + '<span style="font-size:12px; font-weight:700;">' + esc(o.name) + '</span>'
+        + '<span style="font-size:10px; color:var(--muted-text);">' + esc(status) + '</span>'
+        + '</div>';
+    }
+
+    let html = '<div style="display:flex; gap:10px; margin-bottom:14px;">'
+      + '<div style="flex:1; text-align:center; padding:10px; background:#dcfce7; border-radius:10px;"><div style="font-size:20px; font-weight:900; color:#166534;">' + complete.length + '</div><div style="font-size:10px; font-weight:800; color:#166534; text-transform:uppercase;">Complete</div></div>'
+      + '<div style="flex:1; text-align:center; padding:10px; background:#fff1f2; border-radius:10px;"><div style="font-size:20px; font-weight:900; color:#991b1b;">' + incomplete.length + '</div><div style="font-size:10px; font-weight:800; color:#991b1b; text-transform:uppercase;">Incomplete</div></div>'
+      + '</div>';
+
+    if (incomplete.length) {
+      html += '<div style="font-size:11px; font-weight:900; color:var(--muted-text); text-transform:uppercase; margin-bottom:6px;">Incomplete</div>'
+        + incomplete.map(row).join('') + '<div style="height:14px;"></div>';
+    }
+    if (complete.length) {
+      html += '<div style="font-size:11px; font-weight:900; color:var(--muted-text); text-transform:uppercase; margin-bottom:6px;">Complete</div>'
+        + complete.map(row).join('');
+    }
+    if (!all.length) html = '<div class="empty-state">No officials yet.</div>';
+
+    cont.innerHTML = html;
+  }
+
+
 
   async function loadOfficialsList() {
     loadMailingList();
