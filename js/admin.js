@@ -1057,9 +1057,12 @@
       const inviteStatus = o.invite_sent_at
         ? ' · <span style="color:#5b6cff;">Invited ' + new Date(o.invite_sent_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + '</span>'
         : '';
+      const nameStatusIcon = o.invite_sent_at
+        ? (o.profile_complete ? ' <span style="color:#166534;" title="Profile complete">✓</span>' : ' <span style="color:#d97706;" title="Profile incomplete">⏳</span>')
+        : '';
       const skillCount = (skillsByOfficial[o.id] || new Set()).size;
       return '<div style="border-bottom:1px solid var(--ios-sep); padding:12px 0;">'
-        + '<div style="font-weight:700; font-size:13px; margin-bottom:2px;">' + esc(o.name) + '</div>'
+        + '<div style="font-weight:700; font-size:13px; margin-bottom:2px;">' + esc(o.name) + nameStatusIcon + '</div>'
         + '<div style="font-size:11px; color:var(--muted-text); margin-bottom:10px;">' + esc(o.role) + (o.email ? ' · ' + esc(o.email) : '') + (o.profile_complete ? '' : ' · <span style="color:#f59e0b;">Incomplete</span>') + inviteStatus + ' · <span id="skillCount_' + o.id + '">' + skillCount + '/' + activeSkillPositionCount + '</span> skills</div>'
         + '<div style="display:flex; gap:6px;">'
         + inviteBtn
