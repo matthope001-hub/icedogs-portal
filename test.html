@@ -261,6 +261,22 @@
             <p style="font-size:11px; color:var(--muted-text); margin:0 0 12px 0;">These people work directly with the team for these two fixed roles and are kept separate from the general Officials roster.</p>
             <div id="fixedStaffListCont"></div>
           </div>
+
+          <div class="card" style="padding:0; overflow:hidden;">
+            <div onclick="toggleQualCoverageAccordion()" style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; cursor:pointer;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:16px;">🎯</span>
+                <div>
+                  <div style="font-weight:900; font-size:14px;">QUALIFICATION COVERAGE</div>
+                  <div style="font-size:11px; color:var(--muted-text); margin-top:1px;">Who's qualified per position — spot cross-training gaps</div>
+                </div>
+              </div>
+              <span id="qualCoverageChevron" style="font-size:11px; color:var(--muted-text);">▼</span>
+            </div>
+            <div id="qualCoverageBody" style="display:none; border-top:1px solid var(--ios-sep); padding:14px 16px;">
+              <div id="qualCoverageCont"></div>
+            </div>
+          </div>
         </div>
 
         <div id="adminSubAvail" style="display:none;">
