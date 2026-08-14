@@ -918,6 +918,59 @@
   }
 
 
+  let _qualCoverageOpen = false;
+
+  function toggleQualCoverageAccordion() {
+    _qualCoverageOpen = !_qualCoverageOpen;
+    document.getElementById('qualCoverageBody').style.display = _qualCoverageOpen ? 'block' : 'none';
+    document.getElementById('qualCoverageChevron').textContent = _qualCoverageOpen ? '▲' : '▼';
+    if (_qualCoverageOpen) loadQualCoverage();
+  }
+
+
+  async function loadQualCoverage() {
+    const cont = document.getElementById('qualCoverageCont');
+    cont.innerHTML = '<div style="padding:14px; text-align:center; color:var(--muted-text); font-size:12px;">Loading...</div>';
+
+    const enabledPositions = await getEnabledPositionSet();
+    const ACTIVE_SKILL_POSITIONS = SKILL_POSITIONS.filter(pos => enabledPositions.has(pos));
+
+    const { data: skills } = await sb.from('official_skills').select('position, officials(name)');
+    const byPosition = {};
+    (skills || []).forEach(s => {
+      if (!s.officials) return;
+      const pos = s.position.toUpperCase();
+      if (!byPosition[pos]) byPosition[pos] = [];
+      byPosition[pos].push(s.officials.name);
+    });
+
+    // Crew Chief and the always-available backup aren't skill-gated, and PA
+    // Announcer / Video Replay are externally managed (OHL/team-assigned, not
+    // scheduled from this matrix) — none belong in a coverage-gap report.
+    const ALL_ROWS = ACTIVE_SKILL_POSITIONS.filter(p => !FIXED_POSITIONS.includes(p));
+
+    cont.innerHTML = ALL_ROWS.map(pos => {
+      const names = (byPosition[pos] || []).slice().sort();
+      const count = names.length;
+      const isGap = count <= 1;
+      const badgeColor = isGap ? '#991b1b' : (count <= 2 ? '#92400e' : '#166534');
+      const badgeBg = isGap ? '#fff1f2' : (count <= 2 ? '#fff8ed' : '#dcfce7');
+      const label = POSITION_LABELS[pos] || pos;
+      const namesHtml = count
+        ? names.map(n => '<span style="display:inline-block; background:var(--ios-bg); border:1px solid var(--ios-sep); border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700; margin:2px 4px 2px 0;">' + esc(n) + '</span>').join('')
+        : '<span style="font-size:11px; color:var(--muted-text); font-style:italic;">Nobody qualified — needs cross-training</span>';
+      return '<div style="padding:10px 0; border-bottom:1px solid var(--ios-sep);">'
+        + '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">'
+        + '<span style="font-size:12px; font-weight:800;">' + esc(label) + '</span>'
+        + '<span style="font-size:10px; font-weight:900; padding:3px 8px; border-radius:20px; background:' + badgeBg + '; color:' + badgeColor + ';">' + count + ' qualified</span>'
+        + '</div>'
+        + '<div>' + namesHtml + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+
+
   async function loadOfficialsList() {
     loadMailingList();
     const { data: officials } = await sb.from('officials').select('*').order('name');
