@@ -75,6 +75,13 @@
 
     const { data: me } = await sb.from('officials').select('name, email, phone, address, pass_pref, profile_complete').eq('id', sessionOfficial.id).maybeSingle();
     const { data: admins } = await sb.from('officials').select('name, email').eq('role', 'Admin').order('name');
+    const ADMIN_ORDER = ['Wayne Briggs-Jude', 'Curtis Pirson'];
+    const sortedAdmins = (admins || []).slice().sort((a, b) => {
+      const ai = ADMIN_ORDER.indexOf(a.name);
+      const bi = ADMIN_ORDER.indexOf(b.name);
+      if (ai !== -1 || bi !== -1) return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+      return a.name.localeCompare(b.name);
+    });
 
     const initial = (me.name || '?').charAt(0).toUpperCase();
     let html = '<div class="card">'
@@ -95,7 +102,7 @@
     }
 
     html += '<div style="border-radius:12px; overflow:hidden; border:1px solid var(--ios-sep);">'
-      + (admins || []).map((a, i, arr) => {
+      + sortedAdmins.map((a, i, arr) => {
           const border = i < arr.length - 1 ? 'border-bottom:1px solid var(--ios-sep);' : '';
           const emailBtn = a.email ? '<a href="mailto:' + a.email + '" style="background:var(--icedogs-red); color:white; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:700; text-decoration:none;">Email</a>' : '';
           return '<div style="display:flex; align-items:center; gap:10px; padding:11px 14px; ' + border + '">'
