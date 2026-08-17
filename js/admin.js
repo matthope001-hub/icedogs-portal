@@ -984,8 +984,10 @@
     const cont = document.getElementById('profileStatusCont');
     cont.innerHTML = '<div style="padding:14px; text-align:center; color:var(--muted-text); font-size:12px;">Loading...</div>';
 
-    const { data: officials } = await sb.from('officials').select('name, email, profile_complete, invite_sent_at').order('name');
-    const all = officials || [];
+    const { data: officials } = await sb.from('officials').select('id, name, email, profile_complete, invite_sent_at').order('name');
+const { data: fixedStaff } = await sb.from('role_restrictions').select('official_id').in('position', ['PA ANNOUNCER', 'VIDEO REPLAY']);
+const fixedIds = new Set((fixedStaff || []).map(r => r.official_id));
+const all = (officials || []).filter(o => !fixedIds.has(o.id));
     const complete = all.filter(o => o.profile_complete);
     const incomplete = all.filter(o => !o.profile_complete);
 
