@@ -634,7 +634,7 @@
         + '</div>';
       return '<div style="border:1px solid var(--ios-sep); border-radius:10px; margin-bottom:8px; overflow:hidden;">'
         + '<div onclick="toggleMatrixGame(\'' + matrixId + '\')" style="padding:10px 12px; background:#fafafa; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px;">'
-        + '<div style="flex:1; min-width:0;"><div style="font-weight:800; font-size:12px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + ' ' + lockIcon + '</div><div style="font-size:10px; color:var(--muted-text);">' + dateLabel + '</div></div>'
+        + '<div style="flex:1; min-width:0;"><div style="font-weight:800; font-size:12px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + ' ' + lockIcon + '</div><div style="font-size:10px; color:var(--muted-text);">' + dateLabel + (g.time ? ' @ ' + esc(g.time) : '') + '</div></div>'
         + badgeHtml
         + '<span style="font-size:11px; color:var(--muted-text);">▼</span></div>'
         + '<div id="' + matrixId + '" style="display:none; padding:8px 12px;">' + rows + notAvailHtml + lockRow + '</div></div>';
