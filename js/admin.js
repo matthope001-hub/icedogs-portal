@@ -689,7 +689,7 @@
         + '</div>';
       return '<div style="border:1px solid var(--ios-sep); border-radius:10px; margin-bottom:8px; overflow:hidden;">'
         + '<div onclick="toggleMatrixGame(\'' + matrixId + '\')" style="padding:10px 12px; background:#fafafa; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px;">'
-        + '<div style="flex:1; min-width:0;"><div style="font-weight:800; font-size:12px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + ' ' + lockIcon + '</div><div style="font-size:10px; color:var(--muted-text);">' + dateLabel + (g.time ? ' @ ' + esc(g.time) : '') + '</div></div>'
+        + '<div style="flex:1; min-width:0;"><div style="font-weight:800; font-size:12px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + ' ' + lockIcon + '</div><div style="font-size:10px; color:var(--muted-text);">' + dateLabel + (g.time ? ' @ ' + esc(g.time) : '') + '</div>' + (g.promo ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-top:2px;">🎟️ ' + esc(g.promo) + '</div>' : '') + '</div>'
         + badgeHtml
         + '<span style="font-size:11px; color:var(--muted-text);">▼</span></div>'
         + '<div id="' + matrixId + '" style="display:none; padding:8px 12px;">' + rows + notAvailHtml + lockRow + '</div></div>';
@@ -834,9 +834,13 @@
     window._gamesCache = games;
     cont.innerHTML = games.map(g => {
       const dateLabel = new Date(g.date + "T12:00:00").toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const promoHtml = g.promo
+        ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-top:2px;">🎟️ ' + esc(g.promo) + '</div>'
+        : '';
       return '<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--ios-sep);">'
         + '<div><div style="font-weight:700; font-size:13px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + '</div>'
-        + '<div style="font-size:11px; color:var(--muted-text);">' + dateLabel + ' @ ' + (g.time || 'TBD') + '</div></div>'
+        + '<div style="font-size:11px; color:var(--muted-text);">' + dateLabel + ' @ ' + (g.time || 'TBD') + '</div>'
+        + promoHtml + '</div>'
         + '<div style="display:flex; gap:6px;">'
         + '<button onclick="openGameModal(window._gamesCache.find(x => x.id === \'' + g.id + '\'))" style="background:var(--ios-card); border:1px solid var(--ios-sep); border-radius:6px; padding:6px 10px; font-size:11px; color:var(--ios-text); cursor:pointer;">Edit</button>'
         + '<button onclick="confirmDeleteGame(\'' + g.id + '\')" style="background:rgba(220,38,38,0.12); border:1px solid rgba(220,38,38,0.3); border-radius:6px; padding:6px 10px; font-size:11px; color:#dc2626; cursor:pointer;">Delete</button>'
