@@ -57,6 +57,61 @@
     }
   }
 
+
+  // ---- Promo Schedule Import ----
+  // Static lookup of confirmed 2026-27 promo nights (date -> promo text).
+  // importPromos() matches these against existing games by exact date and
+  // writes the promo text via the same save_game action used by the Games
+  // CRUD modal. Safe to re-run — rows already matching are skipped.
+  const PROMO_SCHEDULE = {
+    '2026-09-19': 'Home Opener presented by Carlsberg',
+    '2026-10-23': 'Rivalry Week',
+    '2026-10-30': 'Halloween',
+    '2026-11-01': "Bones' Birthday Bash — Bones Croc Charm Giveaway",
+    '2026-11-05': 'Thursday Night Football in Niagara — in support of Jumpstart, Football Giveaway',
+    '2026-11-28': '20th Annual Teddy Bear Toss presented by Pet Valu',
+    '2026-12-19': 'Dog Country Christmas — Christmas Ornament Giveaway',
+    '2026-12-31': "Rockin' New Year's Eve",
+    '2027-01-03': 'Autograph Day — Hockey Card Giveaway',
+    '2027-01-15': 'Dog Country Fights Cancer — in support of Rankin Cancer Run',
+    '2027-01-21': 'Bobblehead Giveaway',
+    '2027-02-20': 'Country Night — Cowboy Hat Giveaway',
+    '2027-03-19': 'Fan Appreciation Day',
+  };
+
+
+  async function importPromos() {
+    const status = document.getElementById('importPromosStatus');
+    if (status) { status.style.display = 'block'; status.style.color = 'var(--muted-text)'; status.textContent = 'Matching promo dates...'; }
+    showSaving('Matching promo dates...');
+
+    const dates = Object.keys(PROMO_SCHEDULE);
+    const { data: games } = await sb.from('games').select('id, game_number, date, time, opponent_name, type, promo').in('date', dates);
+
+    if (!games || !games.length) {
+      hideSavingError('No matching games found');
+      if (status) { status.style.color = '#C8102E'; status.textContent = '✗ No games found on those dates yet — sync the schedule first.'; }
+      return;
+    }
+
+    let updated = 0, skipped = 0;
+    for (const g of games) {
+      const promo = PROMO_SCHEDULE[g.date];
+      if (g.promo === promo) { skipped++; continue; }
+      const res = await callAdminAction('save_game', {
+        id: g.id, gameNumber: g.game_number, date: g.date, time: g.time,
+        opponentName: g.opponent_name, type: g.type, promo
+      });
+      if (res.success) updated++;
+    }
+
+    hideSaving('Done!');
+    if (status) { status.style.color = '#166534'; status.textContent = '✓ ' + updated + ' promo(s) set, ' + skipped + ' already matched.'; }
+    showToast('✓ ' + updated + ' promo(s) set, ' + skipped + ' already matched');
+    loadGamesList();
+  }
+
+
   let broadcastType = 'reminder';
 
 
@@ -522,6 +577,7 @@
     const gameIds = gameList.map(g => g.id);
     const { data: assignments } = await sb.from('assignments').select('game_id, position, officials(name)').in('game_id', gameIds);
     const { data: avail } = await sb.from('availability').select('game_id, status, officials(name)').in('game_id', gameIds).eq('status', 'Available');
+    const { data: notAvail } = await sb.from('availability').select('game_id, officials(name)').in('game_id', gameIds).eq('status', 'Not Available');
     const { data: restrictions } = await sb.from('role_restrictions').select('position, officials(name)');
     const { data: skills } = await sb.from('official_skills').select('position, officials(name)');
     const enabledPositions = await getEnabledPositionSet();
@@ -554,16 +610,45 @@
       if (!availByGame[a.game_id]) availByGame[a.game_id] = [];
       availByGame[a.game_id].push(a.officials.name);
     });
+    const notAvailByGame = {};
+    (notAvail || []).forEach(a => {
+      if (!a.officials) return;
+      if (!notAvailByGame[a.game_id]) notAvailByGame[a.game_id] = [];
+      notAvailByGame[a.game_id].push(a.officials.name);
+    });
 
     const ALWAYS_AVAILABLE_BACKUP = ["Dave Taylor"];
     const PRESEASON_EXCLUDED = ["PLUS/MINUS", "VIDEO TECH", "VIDEO REPLAY"];
+    const MULTI_ROLE_EXEMPT = ["Wayne Briggs-Jude", "Curtis Pirson"];
 
     cont.innerHTML = gameList.map(g => {
       const dateLabel = new Date(g.date + "T12:00:00").toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       const gameAssignments = assignByGame[g.id] || {};
       const pool = (availByGame[g.id] || []).slice().sort();
+      const notAvailPool = (notAvailByGame[g.id] || []).slice().sort();
       const isPreseason = g.type === '(PRE)';
       const GAME_POSITIONS = isPreseason ? ACTIVE_POSITIONS.filter(pos => !PRESEASON_EXCLUDED.includes(pos)) : ACTIVE_POSITIONS;
+
+      // Positions each official currently holds in this game — enforces within-game
+      // exclusivity (assigned to one position = removed from all others that game),
+      // except Crew Chief, and except Wayne/Curtis who may hold Crew Chief + one other.
+      const positionsByOfficial = {};
+      Object.keys(gameAssignments).forEach(p => {
+        const name = gameAssignments[p];
+        if (!name) return;
+        if (!positionsByOfficial[name]) positionsByOfficial[name] = [];
+        positionsByOfficial[name].push(p);
+      });
+
+      function isBlocked(name, pos) {
+        const held = positionsByOfficial[name] || [];
+        if (!held.length || held.includes(pos)) return false; // free, or already this slot's current pick
+        if (MULTI_ROLE_EXEMPT.includes(name)) {
+          if (held.includes('CREW CHIEF') && held.length === 1 && pos !== 'CREW CHIEF') return false;
+          return true;
+        }
+        return true;
+      }
 
       const rows = GAME_POSITIONS.map(pos => {
         const current = gameAssignments[pos] || '';
@@ -573,10 +658,9 @@
           options = (restrictionMap[pos] || []).slice().sort();
         } else {
           const qualified = skillMap[pos] || new Set();
-          options = pool.filter(n => qualified.has(n));
+          options = pool.filter(n => qualified.has(n) && !isBlocked(n, pos));
           ALWAYS_AVAILABLE_BACKUP.forEach(name => {
-            const alreadyBusy = gameAssignments['VIDEO REPLAY'] === name;
-            if (qualified.has(name) && !alreadyBusy && !options.includes(name)) options.push(name);
+            if (qualified.has(name) && !isBlocked(name, pos) && !options.includes(name)) options.push(name);
           });
           options.sort();
         }
@@ -587,6 +671,10 @@
           + '<select data-prev="' + esc(current) + '" style="width:60%; height:34px; margin:0; font-size:12px;" onchange="updateAssignment(\'' + g.id + '\', \'' + pos.replace(/'/g, "\\'") + '\', this.value, this)">' + optHtml + '</select>'
           + '</div>';
       }).join('');
+
+      const notAvailHtml = notAvailPool.length
+        ? '<div style="padding:8px 0; margin-top:4px; border-top:1px solid var(--ios-sep); font-size:10px; color:var(--muted-text);"><span style="font-weight:900; text-transform:uppercase;">Not Available:</span> ' + notAvailPool.map(n => esc(n)).join(', ') + '</div>'
+        : '';
 
       const matrixId = 'matrix_' + g.id;
       const filledCount = GAME_POSITIONS.filter(pos => gameAssignments[pos]).length;
@@ -601,10 +689,10 @@
         + '</div>';
       return '<div style="border:1px solid var(--ios-sep); border-radius:10px; margin-bottom:8px; overflow:hidden;">'
         + '<div onclick="toggleMatrixGame(\'' + matrixId + '\')" style="padding:10px 12px; background:#fafafa; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px;">'
-        + '<div style="flex:1; min-width:0;"><div style="font-weight:800; font-size:12px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + ' ' + lockIcon + '</div><div style="font-size:10px; color:var(--muted-text);">' + dateLabel + '</div></div>'
+        + '<div style="flex:1; min-width:0;"><div style="font-weight:800; font-size:12px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + ' ' + lockIcon + '</div><div style="font-size:10px; color:var(--muted-text);">' + dateLabel + (g.time ? ' @ ' + esc(g.time) : '') + '</div></div>'
         + badgeHtml
         + '<span style="font-size:11px; color:var(--muted-text);">▼</span></div>'
-        + '<div id="' + matrixId + '" style="display:none; padding:8px 12px;">' + rows + lockRow + '</div></div>';
+        + '<div id="' + matrixId + '" style="display:none; padding:8px 12px;">' + rows + notAvailHtml + lockRow + '</div></div>';
     }).join('');
   }
 
@@ -984,8 +1072,10 @@
     const cont = document.getElementById('profileStatusCont');
     cont.innerHTML = '<div style="padding:14px; text-align:center; color:var(--muted-text); font-size:12px;">Loading...</div>';
 
-    const { data: officials } = await sb.from('officials').select('name, email, profile_complete, invite_sent_at').order('name');
-    const all = officials || [];
+    const { data: officials } = await sb.from('officials').select('id, name, email, profile_complete, invite_sent_at').order('name');
+    const { data: fixedStaff } = await sb.from('role_restrictions').select('official_id').in('position', ['PA ANNOUNCER', 'VIDEO REPLAY']);
+    const fixedIds = new Set((fixedStaff || []).map(r => r.official_id));
+    const all = (officials || []).filter(o => !fixedIds.has(o.id));
     const complete = all.filter(o => o.profile_complete);
     const incomplete = all.filter(o => !o.profile_complete);
 
