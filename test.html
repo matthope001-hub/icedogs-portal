@@ -230,15 +230,17 @@
           </div>
         </div>
 
-        <div id="adminSubGames" style="display:none;">
-          <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-              <div style="font-weight:900; font-size:14px;">🏒 GAMES</div>
-              <button onclick="openGameModal()" style="background:#333; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:11px; font-weight:800; cursor:pointer;">+ Add</button>
-            </div>
-            <div id="gamesListCont"></div>
-          </div>
-        </div>
+<div id="adminSubGames" style="display:none;">
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <div style="font-weight:900; font-size:14px;">🏒 GAMES</div>
+      <button onclick="openGameModal()" style="background:#333; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:11px; font-weight:800; cursor:pointer;">+ Add</button>
+    </div>
+    <button onclick="importPromos()" style="width:100%; height:38px; background:#7c2d12; border:none; border-radius:8px; color:white; font-size:12px; font-weight:800; cursor:pointer; margin-bottom:10px;">🎟️ Import Promos</button>
+    <div id="importPromosStatus" style="display:none; font-size:11px; font-weight:700; text-align:center; margin-bottom:10px;"></div>
+    <div id="gamesListCont"></div>
+  </div>
+</div>
 
         <div id="adminSubOfficials" style="display:none;">
           <div class="card">
