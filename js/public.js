@@ -6,18 +6,19 @@
   // Keyword -> icon mapping for promo nights. Matched against the promo text
   // stored on each game; falls back to a generic ticket icon if nothing matches.
   const PROMO_ICONS = [
+    { match: /home opener/i, icon: '🏒' },
+    { match: /rivalry/i, icon: '🔥' },
+    { match: /halloween/i, icon: '🎃' },
     { match: /birthday/i, icon: '🎂' },
+    { match: /football/i, icon: '🏈' },
     { match: /teddy bear/i, icon: '🧸' },
     { match: /christmas/i, icon: '🎄' },
     { match: /new year/i, icon: '🎉' },
+    { match: /autograph/i, icon: '✍️' },
     { match: /cancer/i, icon: '🎗️' },
+    { match: /bobblehead/i, icon: '🪀' },
     { match: /country night/i, icon: '🤠' },
-    { match: /remembrance/i, icon: '🇨🇦' },
-    { match: /classic rock/i, icon: '🎸' },
-    { match: /pajama/i, icon: '🛌' },
-    { match: /star wars/i, icon: '⭐' },
     { match: /fan appreciation/i, icon: '🙌' },
-    { match: /150th/i, icon: '🎊' },
   ];
 
   function getPromoIcon(promoText) {
