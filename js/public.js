@@ -3,6 +3,29 @@
 
   let countdownTimer;
 
+  // Keyword -> icon mapping for promo nights. Matched against the promo text
+  // stored on each game; falls back to a generic ticket icon if nothing matches.
+  const PROMO_ICONS = [
+    { match: /birthday/i, icon: '🎂' },
+    { match: /teddy bear/i, icon: '🧸' },
+    { match: /christmas/i, icon: '🎄' },
+    { match: /new year/i, icon: '🎉' },
+    { match: /cancer/i, icon: '🎗️' },
+    { match: /country night/i, icon: '🤠' },
+    { match: /remembrance/i, icon: '🇨🇦' },
+    { match: /classic rock/i, icon: '🎸' },
+    { match: /pajama/i, icon: '🛌' },
+    { match: /star wars/i, icon: '⭐' },
+    { match: /fan appreciation/i, icon: '🙌' },
+    { match: /150th/i, icon: '🎊' },
+  ];
+
+  function getPromoIcon(promoText) {
+    if (!promoText) return '';
+    const found = PROMO_ICONS.find(p => p.match.test(promoText));
+    return found ? found.icon : '🎫';
+  }
+
 
   async function loadLoginPageDataFromSupabase() {
     const { data: teams } = await sb.from('teams').select('name, logo_url');
@@ -13,7 +36,7 @@
     const todayStr = new Date().toISOString().slice(0, 10);
     const { data: games } = await sb
       .from('games')
-      .select('id, game_number, date, time, opponent_name, schedule_locked')
+      .select('id, game_number, date, time, opponent_name, schedule_locked, promo')
       .gte('date', todayStr)
       .order('date', { ascending: true })
       .limit(5);
@@ -68,6 +91,7 @@
         time: g.time || "TBD",
         isoTimestamp: dt.getTime(),
         scheduleLocked: !!g.schedule_locked,
+        promo: g.promo || '',
         roster: rosterByGame[g.id] || [],
         available: availByGame[g.id] || []
       };
@@ -132,7 +156,13 @@
       var assignedHtml = g.roster && g.roster.length
         ? g.roster.map(function(r) { return '<div style="display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid #f0f0f0;"><span style="font-size:11px; font-weight:700; color:#888; text-transform:uppercase;">' + r.position + '</span><span style="font-size:12px; font-weight:800;">' + r.name + '</span></div>'; }).join('')
         : '<div style="font-size:12px; color:var(--muted-text); font-style:italic; padding:8px 0;">No assignments yet.</div>';
-      html += '<div class="list-item" style="flex-direction:column; align-items:stretch; padding:0;"><div style="display:flex; align-items:center; padding:12px 14px;"><img src="' + g.logo + '" class="team-logo" style="margin-right:12px;"><div style="flex:1;"><div style="font-weight:800; font-size:15px;">vs ' + esc(g.opponent) + '</div><div style="font-size:11px; color:var(--muted-text);">' + g.date + ' @ ' + g.time + '</div><div style="margin-top:5px;">' + (g.scheduleLocked ? '<span style="background:rgba(21,128,61,0.15); border:1px solid rgba(21,128,61,0.35); color:#22c55e; font-size:10px; font-weight:900; padding:3px 8px; border-radius:20px;">✓ Schedule Set</span>' : '<span style="background:rgba(220,38,38,0.12); border:1px solid rgba(220,38,38,0.3); color:#dc2626; font-size:10px; font-weight:900; padding:3px 8px; border-radius:20px;">⏳ Scheduling In Progress</span>') + '</div></div></div><div style="padding:4px 14px 12px; border-top:1px solid var(--ios-sep);"><div style="font-size:10px; font-weight:900; color:#C8102E; margin-bottom:4px; padding-top:8px;">GAME #' + g.gameId + ' STAFF</div>' + assignedHtml + '</div></div>';
+      var promoHtml = g.promo
+        ? '<div style="display:flex; align-items:center; gap:8px; background:linear-gradient(135deg, rgba(200,16,46,0.10), rgba(0,38,84,0.10)); border:1px solid rgba(200,16,46,0.25); border-radius:10px; padding:8px 12px; margin:8px 0;">'
+          + '<span style="font-size:18px; flex-shrink:0;">' + getPromoIcon(g.promo) + '</span>'
+          + '<span style="font-size:12px; font-weight:800; color:var(--icedogs-red, #C8102E);">' + esc(g.promo) + '</span>'
+          + '</div>'
+        : '';
+      html += '<div class="list-item" style="flex-direction:column; align-items:stretch; padding:0;"><div style="display:flex; align-items:center; padding:12px 14px;"><img src="' + g.logo + '" class="team-logo" style="margin-right:12px;"><div style="flex:1;"><div style="font-weight:800; font-size:15px;">vs ' + esc(g.opponent) + '</div><div style="font-size:11px; color:var(--muted-text);">' + g.date + ' @ ' + g.time + '</div><div style="margin-top:5px;">' + (g.scheduleLocked ? '<span style="background:rgba(21,128,61,0.15); border:1px solid rgba(21,128,61,0.35); color:#22c55e; font-size:10px; font-weight:900; padding:3px 8px; border-radius:20px;">✓ Schedule Set</span>' : '<span style="background:rgba(220,38,38,0.12); border:1px solid rgba(220,38,38,0.3); color:#dc2626; font-size:10px; font-weight:900; padding:3px 8px; border-radius:20px;">⏳ Scheduling In Progress</span>') + '</div></div></div>' + (promoHtml ? '<div style="padding:0 14px;">' + promoHtml + '</div>' : '') + '<div style="padding:4px 14px 12px; border-top:1px solid var(--ios-sep);"><div style="font-size:10px; font-weight:900; color:#C8102E; margin-bottom:4px; padding-top:8px;">GAME #' + g.gameId + ' STAFF</div>' + assignedHtml + '</div></div>';
     });
     cont.innerHTML = html;
     startCountdown(next.isoTimestamp);
