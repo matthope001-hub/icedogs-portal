@@ -32,7 +32,7 @@
     cont.innerHTML = '<div style="padding:14px; text-align:center; color:var(--muted-text); font-size:12px;">Loading...</div>';
     const position = sessionEditorPosition;
 
-    const { data: games } = await sb.from('games').select('id, game_number, date, time, opponent_name')
+    const { data: games } = await sb.from('games').select('id, game_number, date, time, opponent_name, promo')
       .eq('window_month', month).order('date');
     const gameList = games || [];
     if (!gameList.length) { cont.innerHTML = '<div class="empty-state">No games this month.</div>'; return; }
@@ -49,8 +49,11 @@
       const dateLabel = new Date(g.date + "T12:00:00").toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       const current = assignByGame[g.id] || '';
       const optHtml = '<option value="">-- Vacant --</option>' + pool.map(n => '<option value="' + esc(n) + '"' + (n === current ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+      const promoHtml = g.promo
+        ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-top:2px;">🎟️ ' + esc(g.promo) + '</div>'
+        : '';
       return '<div class="list-item">'
-        + '<div style="flex:1;"><div style="font-weight:700; font-size:13px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + '</div><div style="font-size:11px; color:var(--muted-text);">' + dateLabel + ' @ ' + (g.time || 'TBD') + '</div></div>'
+        + '<div style="flex:1;"><div style="font-weight:700; font-size:13px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + '</div><div style="font-size:11px; color:var(--muted-text);">' + dateLabel + ' @ ' + (g.time || 'TBD') + '</div>' + promoHtml + '</div>'
         + '<select style="width:150px; height:38px; margin:0; font-size:12px;" onchange="updateEditorAssignment(\'' + g.id + '\', this.value)">' + optHtml + '</select>'
         + '</div>';
     }).join('');
@@ -363,7 +366,7 @@
     const todayStr = new Date().toISOString().slice(0, 10);
     const { data: games } = await sb
       .from('games')
-      .select('id, game_number, date, time, opponent_name')
+      .select('id, game_number, date, time, opponent_name, promo')
       .gte('date', todayStr)
       .order('date')
       .limit(10);
@@ -421,11 +424,16 @@
         ? '<img src="' + esc(logo) + '" style="width:32px; height:32px; object-fit:contain; flex-shrink:0;" onerror="this.style.display=\'none\'">'
         : '<div style="width:32px; height:32px; border-radius:50%; background:var(--ios-sep); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; color:var(--muted-text);">' + (g.opponent_name ? g.opponent_name.charAt(0) : '?') + '</div>';
 
+      const promoHtml = g.promo
+        ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-bottom:6px;">🎟️ ' + esc(g.promo) + '</div>'
+        : '';
+
       return '<div style="border-bottom:1px solid var(--ios-sep); padding:12px 14px; display:flex; gap:10px;">'
         + logoHtml
         + '<div style="flex:1; min-width:0;">'
         + '<div style="font-weight:800; font-size:13px;">vs ' + esc(g.opponent_name) + '</div>'
-        + '<div style="font-size:11px; color:var(--muted-text); margin-bottom:8px;">' + dateLabel + ' @ ' + (g.time || 'TBD') + '</div>'
+        + '<div style="font-size:11px; color:var(--muted-text); margin-bottom:6px;">' + dateLabel + ' @ ' + (g.time || 'TBD') + '</div>'
+        + promoHtml
         + crewRows + availChips
         + '</div></div>';
     }).join('');
@@ -438,12 +446,12 @@
 
     const { data: assignments } = await sb
       .from('assignments')
-      .select('position, games(id, game_number, date, time, opponent_name)')
+      .select('position, games(id, game_number, date, time, opponent_name, promo)')
       .eq('official_id', sessionOfficial.id);
 
     const rows = (assignments || [])
       .filter(a => a.games)
-      .map(a => ({ position: a.position, date: a.games.date, time: a.games.time, opponent: a.games.opponent_name, gameNumber: a.games.game_number }))
+      .map(a => ({ position: a.position, date: a.games.date, time: a.games.time, opponent: a.games.opponent_name, gameNumber: a.games.game_number, promo: a.games.promo }))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
 
     if (!rows.length) {
@@ -457,9 +465,12 @@
 
     function rowHtml(r, isPast) {
       const dateLabel = new Date(r.date + "T12:00:00").toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const promoHtml = r.promo
+        ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-top:2px;">🎟️ ' + esc(r.promo) + '</div>'
+        : '';
       return '<div class="list-item"' + (isPast ? ' style="opacity:0.7;"' : '') + '>'
         + '<div style="flex:1;"><div style="font-weight:700; font-size:13px;">' + (isPast ? '' : '') + 'vs ' + esc(r.opponent) + '</div>'
-        + '<div style="font-size:11px; color:var(--muted-text);">' + dateLabel + ' @ ' + (r.time || 'TBD') + '</div></div>'
+        + '<div style="font-size:11px; color:var(--muted-text);">' + dateLabel + ' @ ' + (r.time || 'TBD') + '</div>' + promoHtml + '</div>'
         + '<span style="background:var(--icedogs-red); color:white; font-size:10px; font-weight:900; padding:4px 10px; border-radius:20px; white-space:nowrap;">' + esc(r.position) + '</span>'
         + '</div>';
     }
@@ -514,7 +525,7 @@
 
     const { data: games } = await sb
       .from('games')
-      .select('id, game_number, date, time, opponent_name')
+      .select('id, game_number, date, time, opponent_name, promo')
       .eq('window_month', month)
       .order('date');
 
@@ -538,9 +549,12 @@
       const status = saved ? saved.status : 'Available';
       const dateLabel = new Date(g.date + "T12:00:00").toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       const reasonOpts = reasonOptions.map(r => '<option value="' + esc(r) + '"' + (saved && saved.reason === r ? ' selected' : '') + '>' + esc(r) + '</option>').join('');
+      const promoHtml = g.promo
+        ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-top:2px;">🎟️ ' + esc(g.promo) + '</div>'
+        : '';
       return '<div class="list-item" style="flex-direction:column; align-items:stretch;" data-game-id="' + g.id + '">'
         + '<div style="display:flex; justify-content:space-between; align-items:center; width:100%;">'
-        + '<div><div style="font-weight:700; font-size:13px;">vs ' + esc(g.opponent_name) + '</div><div style="font-size:11px; color:var(--muted-text);">' + dateLabel + ' @ ' + (g.time || 'TBD') + '</div></div>'
+        + '<div><div style="font-weight:700; font-size:13px;">vs ' + esc(g.opponent_name) + '</div><div style="font-size:11px; color:var(--muted-text);">' + dateLabel + ' @ ' + (g.time || 'TBD') + '</div>' + promoHtml + '</div>'
         + '<select class="avail-status" style="width:140px; height:38px; margin:0;" onchange="toggleReasonVisibility(this)">'
         + '<option value="Available"' + (status === 'Available' ? ' selected' : '') + '>Available</option>'
         + '<option value="Not Available"' + (status === 'Not Available' ? ' selected' : '') + '>Not Available</option>'
