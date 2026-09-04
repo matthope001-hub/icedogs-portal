@@ -243,13 +243,42 @@
         </div>
 
         <div id="adminSubOfficials" style="display:none;">
-          <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <div style="font-weight:900; font-size:14px;">📬 PHYSICAL PASS MAILING LIST</div>
-              <button onclick="copyMailingList()" style="background:#333; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:11px; font-weight:800; cursor:pointer;">Copy</button>
+          <div class="card" style="padding:0; overflow:hidden;">
+            <div onclick="togglePhysicalMailingAccordion()" style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; cursor:pointer;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:16px;">📬</span>
+                <div>
+                  <div style="font-weight:900; font-size:14px;">PHYSICAL PASS MAILING LIST</div>
+                  <div style="font-size:11px; color:var(--muted-text); margin-top:1px;">Officials who selected "Physical" as their pass preference</div>
+                </div>
+              </div>
+              <span id="mailingListChevron" style="font-size:11px; color:var(--muted-text);">▼</span>
             </div>
-            <p style="font-size:11px; color:var(--muted-text); margin:0 0 12px 0;">Officials who selected "Physical" as their pass preference — copy this list and paste directly into an email.</p>
-            <div id="mailingListCont"></div>
+            <div id="mailingListBody" style="display:none; border-top:1px solid var(--ios-sep); padding:14px 16px;">
+              <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+                <button onclick="copyMailingList()" style="background:#333; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:11px; font-weight:800; cursor:pointer;">Copy</button>
+              </div>
+              <div id="mailingListCont"></div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:0; overflow:hidden;">
+            <div onclick="toggleDigitalMailingAccordion()" style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; cursor:pointer;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:16px;">💻</span>
+                <div>
+                  <div style="font-weight:900; font-size:14px;">DIGITAL PASS MAILING LIST</div>
+                  <div style="font-size:11px; color:var(--muted-text); margin-top:1px;">Officials who selected "Digital" as their pass preference</div>
+                </div>
+              </div>
+              <span id="digitalMailingListChevron" style="font-size:11px; color:var(--muted-text);">▼</span>
+            </div>
+            <div id="digitalMailingListBody" style="display:none; border-top:1px solid var(--ios-sep); padding:14px 16px;">
+              <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+                <button onclick="copyDigitalMailingList()" style="background:#333; color:white; border:none; border-radius:8px; padding:6px 14px; font-size:11px; font-weight:800; cursor:pointer;">Copy</button>
+              </div>
+              <div id="digitalMailingListCont"></div>
+            </div>
           </div>
 
           <div class="card">
