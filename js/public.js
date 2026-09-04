@@ -21,6 +21,9 @@
     { match: /fan appreciation/i, icon: '🙌' },
   ];
 
+  // Positions to visually highlight (bold + IceDogs red) on the public crew list.
+  const HIGHLIGHT_POSITIONS = ['Video Replay', 'PA Announcer'];
+
   function getPromoIcon(promoText) {
     if (!promoText) return '';
     const found = PROMO_ICONS.find(p => p.match.test(promoText));
@@ -155,7 +158,11 @@
     var html = timerHtml;
     data.upcoming.forEach(function(g) {
       var assignedHtml = g.roster && g.roster.length
-        ? g.roster.map(function(r) { return '<div style="display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid #f0f0f0;"><span style="font-size:11px; font-weight:700; color:#888; text-transform:uppercase;">' + r.position + '</span><span style="font-size:12px; font-weight:800;">' + r.name + '</span></div>'; }).join('')
+        ? g.roster.map(function(r) {
+            var hl = HIGHLIGHT_POSITIONS.indexOf(r.position) !== -1;
+            var nameStyle = hl ? 'font-weight:900; color:#C8102E;' : 'font-weight:800;';
+            return '<div style="display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid #f0f0f0;"><span style="font-size:11px; font-weight:700; color:#888; text-transform:uppercase;">' + r.position + '</span><span style="font-size:12px; ' + nameStyle + '">' + r.name + '</span></div>';
+          }).join('')
         : '<div style="font-size:12px; color:var(--muted-text); font-style:italic; padding:8px 0;">No assignments yet.</div>';
       var promoHtml = g.promo
         ? '<div style="display:flex; align-items:center; gap:8px; background:linear-gradient(135deg, rgba(200,16,46,0.10), rgba(0,38,84,0.10)); border:1px solid rgba(200,16,46,0.25); border-radius:10px; padding:8px 12px; margin:8px 0;">'
