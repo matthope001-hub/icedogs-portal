@@ -689,7 +689,7 @@
         + '</div>';
       return '<div style="border:1px solid var(--ios-sep); border-radius:10px; margin-bottom:8px; overflow:hidden;">'
         + '<div onclick="toggleMatrixGame(\'' + matrixId + '\')" style="padding:10px 12px; background:#fafafa; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px;">'
-        + '<div style="flex:1; min-width:0;"><div style="font-weight:800; font-size:12px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + ' ' + lockIcon + '</div><div style="font-size:10px; color:var(--muted-text);">' + dateLabel + (g.time ? ' @ ' + esc(g.time) : '') + '</div>' + (g.promo ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-top:2px;">🎟️ ' + esc(g.promo) + '</div>' : '') + '</div>'
+        + '<div style="flex:1; min-width:0;"><div style="font-weight:800; font-size:12px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + ' ' + lockIcon + '</div><div style="font-size:10px; color:var(--muted-text);">' + dateLabel + (g.time ? ' @ ' + esc(g.time) : '') + '</div>' + (g.promo ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-top:2px;">' + getPromoIcon(g.promo) + ' ' + esc(g.promo) + '</div>' : '') + '</div>'
         + badgeHtml
         + '<span style="font-size:11px; color:var(--muted-text);">▼</span></div>'
         + '<div id="' + matrixId + '" style="display:none; padding:8px 12px;">' + rows + notAvailHtml + lockRow + '</div></div>';
@@ -835,7 +835,7 @@
     cont.innerHTML = games.map(g => {
       const dateLabel = new Date(g.date + "T12:00:00").toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       const promoHtml = g.promo
-        ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-top:2px;">🎟️ ' + esc(g.promo) + '</div>'
+        ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-top:2px;">' + getPromoIcon(g.promo) + ' ' + esc(g.promo) + '</div>'
         : '';
       return '<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--ios-sep);">'
         + '<div><div style="font-weight:700; font-size:13px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + '</div>'
@@ -976,6 +976,17 @@
     }
   }
 
+  // ---- Physical Pass Mailing List (accordion, closed by default) ----
+
+  let _physicalMailingOpen = false;
+
+  function togglePhysicalMailingAccordion() {
+    _physicalMailingOpen = !_physicalMailingOpen;
+    document.getElementById('mailingListBody').style.display = _physicalMailingOpen ? 'block' : 'none';
+    document.getElementById('mailingListChevron').textContent = _physicalMailingOpen ? '▲' : '▼';
+    if (_physicalMailingOpen) loadMailingList();
+  }
+
 
   async function loadMailingList() {
     const { data: officials } = await sb.from('officials').select('name, address, pass_pref').eq('pass_pref', 'Physical').order('name');
@@ -1004,6 +1015,52 @@
     try {
       await navigator.clipboard.writeText(text);
       showToast('✓ Copied ' + recipients.length + ' address' + (recipients.length !== 1 ? 'es' : '') + ' to clipboard');
+    } catch (e) {
+      showToast('Could not copy — select and copy the list manually');
+    }
+  }
+
+  // ---- Digital Pass Mailing List (accordion, closed by default) ----
+  // Mirrors the physical list above but keys off pass_pref = 'Digital' and
+  // copies Name + Email (no mailing address needed for a digital pass).
+
+  let _digitalMailingOpen = false;
+
+  function toggleDigitalMailingAccordion() {
+    _digitalMailingOpen = !_digitalMailingOpen;
+    document.getElementById('digitalMailingListBody').style.display = _digitalMailingOpen ? 'block' : 'none';
+    document.getElementById('digitalMailingListChevron').textContent = _digitalMailingOpen ? '▲' : '▼';
+    if (_digitalMailingOpen) loadDigitalMailingList();
+  }
+
+
+  async function loadDigitalMailingList() {
+    const { data: officials } = await sb.from('officials').select('name, email, pass_pref').eq('pass_pref', 'Digital').order('name');
+    const cont = document.getElementById('digitalMailingListCont');
+    const recipients = (officials || []).filter(o => o.email);
+    window._digitalMailingListCache = recipients;
+
+    if (!recipients.length) {
+      cont.innerHTML = '<div class="empty-state">No one has selected a digital pass yet.</div>';
+      return;
+    }
+
+    cont.innerHTML = recipients.map(o => {
+      return '<div style="padding:10px 0; border-bottom:1px solid var(--ios-sep);">'
+        + '<div style="font-weight:700; font-size:13px;">' + esc(o.name) + '</div>'
+        + '<div style="font-size:12px; color:var(--muted-text); margin-top:2px;">' + esc(o.email) + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+
+  async function copyDigitalMailingList() {
+    const recipients = window._digitalMailingListCache || [];
+    if (!recipients.length) { showToast('No emails to copy'); return; }
+    const text = recipients.map(o => o.name + '\n' + o.email).join('\n\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('✓ Copied ' + recipients.length + ' email' + (recipients.length !== 1 ? 's' : '') + ' to clipboard');
     } catch (e) {
       showToast('Could not copy — select and copy the list manually');
     }
@@ -1114,7 +1171,6 @@
 
 
   async function loadOfficialsList() {
-    loadMailingList();
     const { data: officials } = await sb.from('officials').select('*').order('name');
     const { data: restrictions } = await sb.from('role_restrictions').select('official_id, position, officials(id, name, email, phone, role, profile_complete, invite_sent_at)').in('position', ['PA ANNOUNCER', 'VIDEO REPLAY']);
     const cont = document.getElementById('officialsListCont');
