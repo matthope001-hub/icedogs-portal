@@ -22,7 +22,8 @@
   ];
 
   // Positions to visually highlight (bold + IceDogs red) on the public crew list.
-  const HIGHLIGHT_POSITIONS = ['Video Replay', 'PA Announcer'];
+  // Matched case-insensitively, trimmed, to avoid silent mismatches with DB values.
+  const HIGHLIGHT_POSITIONS = ['video replay', 'pa announcer'];
 
   function getPromoIcon(promoText) {
     if (!promoText) return '';
@@ -159,7 +160,8 @@
     data.upcoming.forEach(function(g) {
       var assignedHtml = g.roster && g.roster.length
         ? g.roster.map(function(r) {
-            var hl = HIGHLIGHT_POSITIONS.indexOf(r.position) !== -1;
+            var posKey = (r.position || '').trim().toLowerCase();
+            var hl = HIGHLIGHT_POSITIONS.indexOf(posKey) !== -1;
             var nameStyle = hl ? 'font-weight:900; color:#C8102E;' : 'font-weight:800;';
             return '<div style="display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid #f0f0f0;"><span style="font-size:11px; font-weight:700; color:#888; text-transform:uppercase;">' + r.position + '</span><span style="font-size:12px; ' + nameStyle + '">' + r.name + '</span></div>';
           }).join('')
