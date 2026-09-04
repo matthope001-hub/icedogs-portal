@@ -50,7 +50,7 @@
       const current = assignByGame[g.id] || '';
       const optHtml = '<option value="">-- Vacant --</option>' + pool.map(n => '<option value="' + esc(n) + '"' + (n === current ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
       const promoHtml = g.promo
-        ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-top:2px;">🎟️ ' + esc(g.promo) + '</div>'
+        ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-top:2px;">' + getPromoIcon(g.promo) + ' ' + esc(g.promo) + '</div>'
         : '';
       return '<div class="list-item">'
         + '<div style="flex:1;"><div style="font-weight:700; font-size:13px;">#' + esc(g.game_number) + ' vs ' + esc(g.opponent_name) + '</div><div style="font-size:11px; color:var(--muted-text);">' + dateLabel + ' @ ' + (g.time || 'TBD') + '</div>' + promoHtml + '</div>'
@@ -410,7 +410,13 @@
       const unscheduled = (availByGame[g.id] || []).filter(n => !assignedNames.has(n));
 
       const crewRows = roster.length
-        ? roster.map(r => '<div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--ios-sep);"><span style="font-size:10px; font-weight:900; color:var(--muted-text); text-transform:uppercase;">' + esc(r.position) + '</span><span style="font-size:12px; font-weight:700;">' + esc(r.name) + (r.name === sessionOfficial.name ? ' ★' : '') + '</span></div>').join('')
+        ? roster.map(r => {
+            const posKey = (r.position || '').trim().toLowerCase();
+            const hl = HIGHLIGHT_POSITIONS.indexOf(posKey) !== -1;
+            const nameStyle = hl ? 'font-weight:900; color:var(--icedogs-red);' : 'font-weight:700;';
+            const posStyle = hl ? 'color:var(--icedogs-red); font-weight:900;' : 'color:var(--muted-text); font-weight:900;';
+            return '<div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--ios-sep);"><span style="font-size:10px; text-transform:uppercase; ' + posStyle + '">' + esc(r.position) + '</span><span style="font-size:12px; ' + nameStyle + '">' + esc(r.name) + (r.name === sessionOfficial.name ? ' ★' : '') + '</span></div>';
+          }).join('')
         : '<div style="font-size:12px; color:var(--muted-text); font-style:italic; padding:6px 0;">No assignments yet.</div>';
 
       const availChips = unscheduled.length
@@ -425,7 +431,7 @@
         : '<div style="width:32px; height:32px; border-radius:50%; background:var(--ios-sep); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; color:var(--muted-text);">' + (g.opponent_name ? g.opponent_name.charAt(0) : '?') + '</div>';
 
       const promoHtml = g.promo
-        ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-bottom:6px;">🎟️ ' + esc(g.promo) + '</div>'
+        ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-bottom:6px;">' + getPromoIcon(g.promo) + ' ' + esc(g.promo) + '</div>'
         : '';
 
       return '<div style="border-bottom:1px solid var(--ios-sep); padding:12px 14px; display:flex; gap:10px;">'
@@ -466,7 +472,7 @@
     function rowHtml(r, isPast) {
       const dateLabel = new Date(r.date + "T12:00:00").toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       const promoHtml = r.promo
-        ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-top:2px;">🎟️ ' + esc(r.promo) + '</div>'
+        ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-top:2px;">' + getPromoIcon(r.promo) + ' ' + esc(r.promo) + '</div>'
         : '';
       return '<div class="list-item"' + (isPast ? ' style="opacity:0.7;"' : '') + '>'
         + '<div style="flex:1;"><div style="font-weight:700; font-size:13px;">' + (isPast ? '' : '') + 'vs ' + esc(r.opponent) + '</div>'
@@ -550,7 +556,7 @@
       const dateLabel = new Date(g.date + "T12:00:00").toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       const reasonOpts = reasonOptions.map(r => '<option value="' + esc(r) + '"' + (saved && saved.reason === r ? ' selected' : '') + '>' + esc(r) + '</option>').join('');
       const promoHtml = g.promo
-        ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-top:2px;">🎟️ ' + esc(g.promo) + '</div>'
+        ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-top:2px;">' + getPromoIcon(g.promo) + ' ' + esc(g.promo) + '</div>'
         : '';
       return '<div class="list-item" style="flex-direction:column; align-items:stretch;" data-game-id="' + g.id + '">'
         + '<div style="display:flex; justify-content:space-between; align-items:center; width:100%;">'
