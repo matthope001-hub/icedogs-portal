@@ -163,7 +163,8 @@
             var posKey = (r.position || '').trim().toLowerCase();
             var hl = HIGHLIGHT_POSITIONS.indexOf(posKey) !== -1;
             var nameStyle = hl ? 'font-weight:900; color:#C8102E;' : 'font-weight:800;';
-            return '<div style="display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid #f0f0f0;"><span style="font-size:11px; font-weight:700; color:#888; text-transform:uppercase;">' + r.position + '</span><span style="font-size:12px; ' + nameStyle + '">' + r.name + '</span></div>';
+            var posStyle = hl ? 'color:#C8102E; font-weight:900;' : 'color:#888; font-weight:700;';
+            return '<div style="display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid #f0f0f0;"><span style="font-size:11px; text-transform:uppercase; ' + posStyle + '">' + r.position + '</span><span style="font-size:12px; ' + nameStyle + '">' + r.name + '</span></div>';
           }).join('')
         : '<div style="font-size:12px; color:var(--muted-text); font-style:italic; padding:8px 0;">No assignments yet.</div>';
       var promoHtml = g.promo
