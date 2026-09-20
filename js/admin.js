@@ -660,7 +660,7 @@
           const qualified = skillMap[pos] || new Set();
           options = pool.filter(n => qualified.has(n) && !isBlocked(n, pos));
           ALWAYS_AVAILABLE_BACKUP.forEach(name => {
-            if (qualified.has(name) && !isBlocked(name, pos) && !options.includes(name)) options.push(name);
+            if (qualified.has(name) && !isBlocked(name, pos) && !notAvailPool.includes(name) && !options.includes(name)) options.push(name);
           });
           options.sort();
         }
