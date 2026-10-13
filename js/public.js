@@ -2,6 +2,13 @@
 // broadcast notices shown before login. Depends on globals from core.js.
 
   let countdownTimer;
+  let liveGameTimer;
+
+  // Live-game feed (Supabase Edge Function "live-game"). Returns today's IceDogs
+  // game — home or away — with score, period and clock from HockeyTech.
+  const LIVE_GAME_URL = SUPABASE_URL + "/functions/v1/live-game";
+  const LIVE_POLL_MS = 30000;   // while a game is live
+  const PRE_POLL_MS = 60000;    // game day, before puck drop
 
   // Keyword -> icon mapping for promo nights. Matched against the promo text
   // stored on each game; falls back to a generic ticket icon if nothing matches.
@@ -177,6 +184,7 @@
     });
     cont.innerHTML = html;
     startCountdown(next.isoTimestamp);
+    checkLiveGame();
   }
 
 
@@ -199,4 +207,65 @@
     }
     update();
     countdownTimer = setInterval(update, 1000);
+  }
+
+
+  // ---- Live game strip ----
+  // Checks for an IceDogs game today. Live -> replaces the countdown with the
+  // score strip and re-checks every 30s. Final -> shows the final score and stops.
+  // Pre-game -> leaves the countdown alone and re-checks every 60s so the strip
+  // appears at puck drop. No game today or a failed request -> countdown untouched.
+  async function checkLiveGame() {
+    if (liveGameTimer) { clearTimeout(liveGameTimer); liveGameTimer = null; }
+    let data;
+    try {
+      const res = await fetch(LIVE_GAME_URL, {
+        method: 'GET',
+        headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'apikey': SUPABASE_ANON_KEY }
+      });
+      data = await res.json();
+    } catch (e) {
+      return; // feed unavailable — countdown / time-based badge stays as is
+    }
+    const g = data && data.game;
+    if (!g) return;
+
+    if (g.state === 'pre') {
+      liveGameTimer = setTimeout(checkLiveGame, PRE_POLL_MS);
+      return;
+    }
+
+    const container = document.getElementById('timerCont');
+    if (!container) return;
+    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+    container.innerHTML = renderLiveStrip(g);
+
+    if (g.state === 'live') liveGameTimer = setTimeout(checkLiveGame, LIVE_POLL_MS);
+  }
+
+
+  function renderLiveStrip(g) {
+    const isLive = g.state === 'live';
+    const logo = function(id) { return 'https://assets.leaguestat.com/ohl/logos/' + encodeURIComponent(id) + '.png'; };
+    const team = function(id, name, code, score, isNiagara) {
+      return '<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; min-width:0;">'
+        + '<img src="' + logo(id) + '" alt="" style="width:44px; height:44px; object-fit:contain;" onerror="this.style.visibility=\'hidden\'">'
+        + '<div style="font-size:11px; font-weight:900; text-transform:uppercase; color:' + (isNiagara ? 'var(--icedogs-red, #C8102E)' : 'var(--muted-text)') + ';">' + esc(code || name) + '</div>'
+        + '<div style="font-size:clamp(28px, 9vw, 40px); font-weight:900; line-height:1;">' + (score === null || score === undefined ? '-' : esc(String(score))) + '</div>'
+        + '</div>';
+    };
+    const niagaraHome = g.isHome;
+    const badge = isLive
+      ? '<div class="live-badge"><span>●</span> LIVE</div>'
+      : '<div style="display:inline-flex; align-items:center; background:var(--ios-sep); color:var(--muted-text); font-size:11px; font-weight:900; padding:6px 12px; border-radius:20px;">FINAL</div>';
+    const status = [g.period, g.clock].filter(Boolean).join(' · ');
+    return '<div style="text-align:center;">'
+      + '<div style="margin-bottom:10px;">' + badge + '</div>'
+      + '<div style="display:flex; align-items:center; gap:8px;">'
+      + team(g.awayId, g.awayName, g.awayCode, g.awayScore, !niagaraHome)
+      + '<div style="font-size:12px; font-weight:900; color:var(--muted-text); min-width:64px;">' + esc(status || (isLive ? 'In Progress' : '')) + '</div>'
+      + team(g.homeId, g.homeName, g.homeCode, g.homeScore, niagaraHome)
+      + '</div>'
+      + (g.venue ? '<div style="font-size:11px; color:var(--muted-text); margin-top:8px;">' + esc(g.venue) + '</div>' : '')
+      + '</div>';
   }
