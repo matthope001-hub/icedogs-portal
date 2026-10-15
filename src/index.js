@@ -8,6 +8,7 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/live-game") {
+      if (url.searchParams.get("debug") === "1") return handleLiveGameDebug();
       return handleLiveGame(request);
     }
 
@@ -203,4 +204,23 @@ async function buildLiveBody() {
       source,
     },
   });
+}
+
+
+// Debug: raw HockeyTech gamecentre clock data for today's game (no caching).
+// Used to check field names during a live game: /api/live-game?debug=1
+async function handleLiveGameDebug() {
+  const headers = { "Content-Type": "application/json", "Cache-Control": "no-store" };
+  try {
+    const schedUrl = `${FEED}?feed=modulekit&view=schedule&key=${API_KEY}&fmt=json&client_code=${CLIENT_CODE}&lang=en&season_id=${SEASON_ID}&team_id=${TEAM_ID}&league_id=${LEAGUE_ID}`;
+    const json = await fetchJson(schedUrl);
+    const games = (json && json.SiteKit && json.SiteKit.Schedule) || [];
+    const today = todayInToronto();
+    const g = games.find((x) => str(x.date_played).slice(0, 10) === today);
+    if (!g) return new Response(JSON.stringify({ today, game: null }), { headers });
+    const clock = await fetchClock(str(g.game_id));
+    return new Response(JSON.stringify({ gameId: str(g.game_id), clock }, null, 1), { headers });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: e.message }), { headers });
+  }
 }
