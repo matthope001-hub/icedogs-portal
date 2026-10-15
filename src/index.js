@@ -106,6 +106,42 @@ function clockLabel(raw) {
   return totalMin + ":" + String(s).padStart(2, "0");
 }
 
+// Clock string -> total seconds ("00:12:34" -> 754). -1 if unparseable.
+function clockSeconds(raw) {
+  const parts = str(raw).split(":").map((p) => parseInt(p, 10));
+  if (parts.length < 2 || parts.some(isNaN)) return -1;
+  const [h, m, s] = parts.length === 3 ? parts : [0, parts[0], parts[1]];
+  return h * 3600 + m * 60 + s;
+}
+
+// ---- Intermission timing ----
+// HockeyTech has no intermission flag or clock: at the end of a period it just
+// shows game_clock "00:00:00" while the game is still in progress. The first time
+// the Worker sees that for a given period, it records the time, so everyone gets
+// the same countdown (not a fresh 18:00 for whoever loads the page mid-break).
+// Stored in Cloudflare's cache (shared by visitors) plus memory as a backup.
+const INTERMISSION_MS = 18 * 60 * 1000;
+const intermissionMem = {};
+
+async function intermissionStart(gameId, period) {
+  const key = gameId + "-" + period;
+  if (intermissionMem[key]) return intermissionMem[key];
+  const cacheKey = new Request("https://icedogofficials.ca/__intermission/" + key);
+  let start = null;
+  try {
+    const hit = await caches.default.match(cacheKey);
+    if (hit) start = Number(await hit.text());
+  } catch (_e) { /* cache unavailable — fall back to memory */ }
+  if (!start || isNaN(start)) {
+    start = Date.now();
+    try {
+      await caches.default.put(cacheKey, new Response(String(start), { headers: { "Cache-Control": "max-age=7200" } }));
+    } catch (_e) { /* ignore */ }
+  }
+  intermissionMem[key] = start;
+  return start;
+}
+
 async function fetchJson(url) {
   // Cache-buster + no-store so HockeyTech/CDN caches never serve stale data.
   const res = await fetch(url + "&_=" + Date.now(), { cf: { cacheTtl: 0, cacheEverything: false }, headers: { "Cache-Control": "no-cache" } });
@@ -182,7 +218,26 @@ async function buildLiveBody() {
     }
   }
 
-  const state = final ? "final" : (started ? "live" : "pre");
+  let state = final ? "final" : (started ? "live" : "pre");
+  let periodText = state === "pre" ? "" : periodLabel(period, intermission, final, overtime, shootout);
+  let clockText = state === "live" && !intermission ? clockLabel(rawClock) : "";
+  let intermissionEndsAt = null;
+
+  // End of a period: clock at 0:00 while the game is still live.
+  if (state === "live" && period >= 1 && (clockSeconds(rawClock) === 0 || intermission)) {
+    const ord = { 1: "1st", 2: "2nd", 3: "3rd" }[period] || (period === 4 ? "OT" : period + "th");
+    if (period >= 3 && homeScore !== awayScore) {
+      // Regulation (or OT) over with a winner — show Final before the feed's
+      // own final flag catches up.
+      state = "final";
+      periodText = period >= 4 ? "Final/OT" : "Final";
+      clockText = "";
+    } else {
+      periodText = "End of " + ord;
+      clockText = "";
+      if (period <= 2) intermissionEndsAt = (await intermissionStart(gameId, period)) + INTERMISSION_MS;
+    }
+  }
 
   return JSON.stringify({
     game: {
@@ -197,8 +252,10 @@ async function buildLiveBody() {
       awayCode: str(g.visiting_team_code),
       homeScore: state === "pre" ? null : homeScore,
       awayScore: state === "pre" ? null : awayScore,
-      period: state === "pre" ? "" : periodLabel(period, intermission, final, overtime, shootout),
-      clock: state === "live" && !intermission ? clockLabel(rawClock) : "",
+      period: periodText,
+      clock: clockText,
+      intermissionEndsAt,
+      serverNow: Date.now(),
       startTime: str(g.scheduled_time),
       venue: str(g.venue_name),
       source,

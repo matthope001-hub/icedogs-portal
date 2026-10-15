@@ -3,6 +3,7 @@
 
   let countdownTimer;
   let liveGameTimer;
+  let intermissionTimer;
 
   // Live-game feed (Supabase Edge Function "live-game"). Returns today's IceDogs
   // game — home or away — with score, period and clock from HockeyTech.
@@ -239,6 +240,7 @@
     if (!container) return;
     if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
     container.innerHTML = renderLiveStrip(g);
+    startIntermissionCountdown(g);
 
     if (g.state === 'live') liveGameTimer = setTimeout(checkLiveGame, LIVE_POLL_MS);
   }
@@ -259,13 +261,36 @@
       ? '<div class="live-badge"><span>●</span> LIVE</div>'
       : '<div style="display:inline-flex; align-items:center; background:var(--ios-sep); color:var(--muted-text); font-size:11px; font-weight:900; padding:6px 12px; border-radius:20px;">FINAL</div>';
     const status = [g.period, g.clock].filter(Boolean).join(' · ');
+    const intermissionHtml = g.intermissionEndsAt
+      ? '<div style="font-size:10px; font-weight:900; color:var(--muted-text); text-transform:uppercase; margin-top:4px;">Intermission</div>'
+        + '<div id="intermissionClock" style="font-size:18px; font-weight:900; color:var(--icedogs-red, #C8102E); font-variant-numeric:tabular-nums;">18:00</div>'
+      : '';
     return '<div style="text-align:center;">'
       + '<div style="margin-bottom:10px;">' + badge + '</div>'
       + '<div style="display:flex; align-items:center; gap:8px;">'
       + team(g.awayId, g.awayName, g.awayCode, g.awayScore, !niagaraHome)
-      + '<div style="font-size:12px; font-weight:900; color:var(--muted-text); min-width:64px;">' + esc(status || (isLive ? 'In Progress' : '')) + '</div>'
+      + '<div style="min-width:76px;"><div style="font-size:12px; font-weight:900; color:var(--muted-text);">' + esc(status || (isLive ? 'In Progress' : '')) + '</div>' + intermissionHtml + '</div>'
       + team(g.homeId, g.homeName, g.homeCode, g.homeScore, niagaraHome)
       + '</div>'
       + (g.venue ? '<div style="font-size:11px; color:var(--muted-text); margin-top:8px;">' + esc(g.venue) + '</div>' : '')
       + '</div>';
+  }
+
+
+  // Ticks the intermission countdown every second. The end time comes from the
+  // server; serverNow corrects for the phone's clock being slightly off.
+  function startIntermissionCountdown(g) {
+    if (intermissionTimer) { clearInterval(intermissionTimer); intermissionTimer = null; }
+    if (!g || !g.intermissionEndsAt) return;
+    const offset = (g.serverNow || Date.now()) - Date.now();
+    function tick() {
+      const el = document.getElementById('intermissionClock');
+      if (!el) { clearInterval(intermissionTimer); intermissionTimer = null; return; }
+      const remaining = g.intermissionEndsAt - (Date.now() + offset);
+      if (remaining <= 0) { el.textContent = 'Starting soon'; el.style.fontSize = '12px'; clearInterval(intermissionTimer); intermissionTimer = null; return; }
+      const totalSec = Math.ceil(remaining / 1000);
+      el.textContent = Math.floor(totalSec / 60) + ':' + String(totalSec % 60).padStart(2, '0');
+    }
+    tick();
+    intermissionTimer = setInterval(tick, 1000);
   }
