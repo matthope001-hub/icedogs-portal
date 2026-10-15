@@ -39,7 +39,7 @@ const TEAM_ID = "20";
 const LEAGUE_ID = "1";
 const SEASON_ID = "88";
 const TIMEZONE = "America/Toronto";
-const CACHE_MS = 10000;
+const CACHE_MS = 5000;
 const FEED = "https://lscluster.hockeytech.com/feed/index.php";
 
 let liveCache = null; // { at, body } — per Worker instance

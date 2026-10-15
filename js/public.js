@@ -7,7 +7,7 @@
   // Live-game feed (Supabase Edge Function "live-game"). Returns today's IceDogs
   // game — home or away — with score, period and clock from HockeyTech.
   const LIVE_GAME_URL = "/api/live-game"; // served by the Cloudflare Worker (src/index.js)
-  const LIVE_POLL_MS = 15000;   // while a game is live
+  const LIVE_POLL_MS = 10000;   // while a game is live
   const PRE_POLL_MS = 60000;    // game day, before puck drop
 
   // Keyword -> icon mapping for promo nights. Matched against the promo text
