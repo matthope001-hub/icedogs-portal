@@ -1335,6 +1335,16 @@
     } else if (useExisting && !officialId) {
       hideSavingError('Select an official first');
       return;
+    } else if (!useExisting && officialId) {
+      // Editing existing fixed staff — save name/email/phone changes too.
+      // Keep their current role (e.g. Admin) rather than resetting it.
+      const name = document.getElementById('fsName').value.trim();
+      const email = document.getElementById('fsEmail').value.trim();
+      const phone = document.getElementById('fsPhone').value.trim();
+      if (!name) { hideSavingError('Name is required'); return; }
+      const current = (window._officialsCache || []).find(o => o.id === officialId) || {};
+      const res = await callAdminAction('save_official', { id: officialId, name, email, phone, role: current.role || 'Official' });
+      if (!res.success) { hideSavingError(res.msg || 'Failed to save official'); return; }
     }
 
     if (!officialId) { hideSavingError('Could not determine official'); return; }
