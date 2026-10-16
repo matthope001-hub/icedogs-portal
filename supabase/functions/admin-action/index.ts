@@ -10,6 +10,8 @@ const PORTAL_URL = "https://icedogofficials.ca";
 // Display name shown in officials' inboxes. Override with the EMAIL_FROM_NAME secret.
 const FROM_NAME = Deno.env.get("EMAIL_FROM_NAME") || "IceDogs Officials Portal";
 // Shown at the bottom of every portal email — the sending mailbox isn't monitored.
+// Plain-text equivalent, used in the text/plain part of every email.
+const NO_REPLY_TEXT = "This email was sent from an unmonitored mailbox. Please do not reply - contact an IceDogs off-ice admin directly with any questions.";
 const NO_REPLY_FOOTER = `<p style="color:#999; font-size:11px; text-align:center; margin:16px 0 0; line-height:1.5;">This email was sent from an unmonitored mailbox. Please do not reply &mdash; contact an IceDogs off-ice admin directly with any questions.</p>`;
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -122,6 +124,9 @@ async function emailBroadcast(message: string, type: string, sentBy: string, onl
   const subjectLine = asciiSubject(firstLine);
   const subject = (isTest ? "[TEST] " : "") + subjectPrefix + "IceDogs Off-Ice - " + (subjectLine.length > 60 ? subjectLine.slice(0, 57) + "..." : subjectLine);
   const bodyHtml = safeHtml(message).replace(/\r?\n/g, "<br>");
+  // Plain-text part: spam filters score HTML-only email worse.
+  const textFor = (firstName: string) =>
+    `${cfg.label}\n\nHi ${firstName},\n\n${message}\n\n- ${sentBy}\n\nOpen the portal: ${PORTAL_URL}\n\n--\nNiagara IceDogs Off-Ice Officials Portal\n${NO_REPLY_TEXT}`;
 
   const client = smtpClient();
   let sent = 0;
@@ -133,6 +138,7 @@ async function emailBroadcast(message: string, type: string, sentBy: string, onl
         from: `${FROM_NAME} <${GMAIL_ADDRESS}>`,
         to: o.email,
         subject,
+        content: textFor(firstName),
         html: `
           <div style="font-family:Arial,sans-serif; max-width:500px; margin:0 auto;">
             <div style="background:#C8102E; padding:24px; text-align:center; border-radius:12px 12px 0 0;">
@@ -517,6 +523,7 @@ Deno.serve(async (req) => {
             from: `${FROM_NAME} <${GMAIL_ADDRESS}>`,
             to: o.email,
             subject: `Availability Now Open - ${monthLabel}`,
+            content: `Hi ${firstName},\n\n${monthLabel} availability is now open on the Off-Ice Officials Portal. Please log in and submit your availability as soon as possible.\n\nSubmit availability: ${PORTAL_URL}\n\n--\nNiagara IceDogs Off-Ice Officials Portal\n${NO_REPLY_TEXT}`,
             html: `
               <div style="font-family:Arial,sans-serif; max-width:500px; margin:0 auto;">
                 <div style="background:#C8102E; padding:24px; text-align:center; border-radius:12px 12px 0 0;">

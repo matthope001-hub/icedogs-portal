@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
           </div>
           ${NO_REPLY_FOOTER}
         </div>`,
-      content: "auto",
+      content: `Hi ${firstName},\n\nPlease complete your profile to access the Off-Ice Officials Portal for the new season. This link is personal to you and can only be used once:\n\n${inviteUrl}\n\n--\nNiagara IceDogs Off-Ice Officials Portal\nThis email was sent from an unmonitored mailbox. Please do not reply - contact an IceDogs off-ice admin directly with any questions.`,
     });
     await client.close();
 
