@@ -16,7 +16,7 @@ const JWT_SECRET = Deno.env.get("PORTAL_JWT_SECRET")!;
 const GMAIL_ADDRESS = Deno.env.get("GMAIL_ADDRESS")!;
 const GMAIL_APP_PASSWORD = Deno.env.get("GMAIL_APP_PASSWORD")!;
 const BACKUP_EMAIL = Deno.env.get("BACKUP_EMAIL") || GMAIL_ADDRESS;
-const FROM_NAME = "IceDogs Off-Ice Officials";
+const FROM_NAME = Deno.env.get("EMAIL_FROM_NAME") || "IceDogs Officials Portal";
 
 function getServiceRoleKey(): string {
   const legacy = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");

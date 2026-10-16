@@ -7,8 +7,8 @@ import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 const GMAIL_ADDRESS = Deno.env.get("GMAIL_ADDRESS")!;
 const GMAIL_APP_PASSWORD = Deno.env.get("GMAIL_APP_PASSWORD")!;
 const PORTAL_URL = "https://icedogofficials.ca";
-// Display name shown in officials' inboxes for portal emails.
-const FROM_NAME = "IceDogs Off-Ice Officials";
+// Display name shown in officials' inboxes. Override with the EMAIL_FROM_NAME secret.
+const FROM_NAME = Deno.env.get("EMAIL_FROM_NAME") || "IceDogs Officials Portal";
 // Shown at the bottom of every portal email — the sending mailbox isn't monitored.
 const NO_REPLY_FOOTER = `<p style="color:#999; font-size:11px; text-align:center; margin:16px 0 0; line-height:1.5;">This email was sent from an unmonitored mailbox. Please do not reply &mdash; contact an IceDogs off-ice admin directly with any questions.</p>`;
 
