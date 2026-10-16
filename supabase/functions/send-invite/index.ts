@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
     await client.send({
       from: `${FROM_NAME} <${GMAIL_ADDRESS}>`,
       to: email,
-      subject: "You're Invited — Niagara IceDogs Off-Ice Officials Portal",
+      subject: "You're Invited - Niagara IceDogs Off-Ice Officials Portal",
       html: `
         <div style="font-family:Arial,sans-serif; max-width:500px; margin:0 auto;">
           <div style="background:#C8102E; padding:24px; text-align:center; border-radius:12px 12px 0 0;">
@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
             <p style="color:#1a1a1a; font-size:15px;">Hi ${firstName},</p>
             <p style="color:#444; font-size:14px; line-height:1.6;">Please complete your profile to access the Off-Ice Officials Portal for the new season. This link is personal to you and can only be used once.</p>
             <p style="text-align:center; margin:28px 0;">
-              <a href="${inviteUrl}" style="background:#C8102E; color:white; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:15px; display:inline-block;">Complete My Profile →</a>
+              <a href="${inviteUrl}" style="background:#C8102E; color:white; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:15px; display:inline-block;">Complete My Profile &rarr;</a>
             </p>
             <p style="color:#888; font-size:12px;">If the button doesn't work, copy and paste this link:<br>
             <a href="${inviteUrl}" style="color:#C8102E;">${inviteUrl}</a></p>

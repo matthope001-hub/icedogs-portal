@@ -68,6 +68,28 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+// Email subjects must be plain ASCII — the mail library mangles other characters
+// in headers, which breaks the whole email in stricter clients (e.g. Yahoo).
+function asciiSubject(s: string): string {
+  return String(s)
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/\u2026/g, "...")
+    .replace(/[^\x20-\x7E]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Escapes HTML and turns any non-ASCII character (accents, emoji, curly quotes)
+// into a numeric entity so the email body is pure ASCII.
+function safeHtml(s: string): string {
+  return Array.from(escapeHtml(s)).map((ch) => {
+    const code = ch.codePointAt(0) || 0;
+    return code > 126 ? `&#${code};` : ch;
+  }).join("");
+}
+
 function smtpClient(): SMTPClient {
   return new SMTPClient({
     connection: {
@@ -97,8 +119,9 @@ async function emailBroadcast(message: string, type: string, sentBy: string, onl
   const cfg = TYPE_CFG[type] || TYPE_CFG.info;
   const subjectPrefix = type === "urgent" ? "URGENT: " : (type === "reminder" ? "Reminder: " : "");
   const firstLine = message.split("\n")[0].trim();
-  const subject = (isTest ? "[TEST] " : "") + subjectPrefix + "IceDogs Off-Ice — " + (firstLine.length > 60 ? firstLine.slice(0, 57) + "..." : firstLine);
-  const bodyHtml = escapeHtml(message).replace(/\r?\n/g, "<br>");
+  const subjectLine = asciiSubject(firstLine);
+  const subject = (isTest ? "[TEST] " : "") + subjectPrefix + "IceDogs Off-Ice - " + (subjectLine.length > 60 ? subjectLine.slice(0, 57) + "..." : subjectLine);
+  const bodyHtml = safeHtml(message).replace(/\r?\n/g, "<br>");
 
   const client = smtpClient();
   let sent = 0;
@@ -118,11 +141,11 @@ async function emailBroadcast(message: string, type: string, sentBy: string, onl
             </div>
             <div style="background:#f9f9f9; padding:28px; border-radius:0 0 12px 12px; border:1px solid #eee;">
               <div style="display:inline-block; font-size:11px; font-weight:bold; color:white; background:${cfg.color}; padding:4px 10px; border-radius:20px; margin-bottom:14px;">${cfg.label}</div>
-              <p style="color:#1a1a1a; font-size:15px; margin-top:0;">Hi ${escapeHtml(firstName)},</p>
+              <p style="color:#1a1a1a; font-size:15px; margin-top:0;">Hi ${safeHtml(firstName)},</p>
               <p style="color:#333; font-size:14px; line-height:1.6;">${bodyHtml}</p>
-              <p style="color:#888; font-size:12px; margin-top:20px;">— ${escapeHtml(sentBy)}</p>
+              <p style="color:#888; font-size:12px; margin-top:20px;">&mdash; ${safeHtml(sentBy)}</p>
               <p style="text-align:center; margin:24px 0 4px;">
-                <a href="${PORTAL_URL}" style="background:#C8102E; color:white; padding:12px 28px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:14px; display:inline-block;">Open the Portal →</a>
+                <a href="${PORTAL_URL}" style="background:#C8102E; color:white; padding:12px 28px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:14px; display:inline-block;">Open the Portal &rarr;</a>
               </p>
             </div>
             ${NO_REPLY_FOOTER}
@@ -493,7 +516,7 @@ Deno.serve(async (req) => {
           await client.send({
             from: `${FROM_NAME} <${GMAIL_ADDRESS}>`,
             to: o.email,
-            subject: `Availability Now Open — ${monthLabel}`,
+            subject: `Availability Now Open - ${monthLabel}`,
             html: `
               <div style="font-family:Arial,sans-serif; max-width:500px; margin:0 auto;">
                 <div style="background:#C8102E; padding:24px; text-align:center; border-radius:12px 12px 0 0;">
@@ -504,7 +527,7 @@ Deno.serve(async (req) => {
                   <p style="color:#1a1a1a; font-size:15px;">Hi ${firstName},</p>
                   <p style="color:#444; font-size:14px; line-height:1.6;"><strong>${monthLabel}</strong> availability is now open on the Off-Ice Officials Portal. Please log in and submit your availability as soon as possible.</p>
                   <p style="text-align:center; margin:28px 0;">
-                    <a href="${PORTAL_URL}" style="background:#C8102E; color:white; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:15px; display:inline-block;">Submit Availability →</a>
+                    <a href="${PORTAL_URL}" style="background:#C8102E; color:white; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:15px; display:inline-block;">Submit Availability &rarr;</a>
                   </p>
                 </div>
                 ${NO_REPLY_FOOTER}

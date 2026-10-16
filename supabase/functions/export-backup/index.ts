@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
     await client.send({
       from: `${FROM_NAME} <${GMAIL_ADDRESS}>`,
       to: BACKUP_EMAIL,
-      subject: `IceDogs Portal Backup — ${dateStr}`,
+      subject: `IceDogs Portal Backup - ${dateStr}`,
       content: `Automatic backup of the IceDogs Officials Portal database, generated ${dateStr}.\n\nAttached as JSON. Keep this somewhere safe.\n\nThis email was sent from an unmonitored mailbox. Please do not reply.`,
       attachments: [
         {
