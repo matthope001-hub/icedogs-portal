@@ -1,0 +1,6 @@
+supabase
+supabase/**
+src
+src/**
+wrangler.jsonc
+.assetsignore

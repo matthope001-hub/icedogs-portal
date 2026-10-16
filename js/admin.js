@@ -1502,16 +1502,30 @@
   async function sendBroadcastMsg() {
     const message = document.getElementById('broadcastText').value.trim();
     const expiresAt = document.getElementById('broadcastExpiry').value || null;
+    const emailBox = document.getElementById('broadcastEmail');
+    const email = !!(emailBox && emailBox.checked);
     if (!message) { showToast('Enter a message first'); return; }
-    showSaving('Sending...');
-    const res = await callAdminAction('send_broadcast', { message, type: broadcastType, expiresAt });
-    if (res.success) {
-      hideSaving('Broadcast sent!');
-      document.getElementById('broadcastText').value = '';
-      document.getElementById('broadcastExpiry').value = '';
-      loadActiveBroadcasts();
+
+    const doSend = async () => {
+      showSaving(email ? 'Sending broadcast and emails...' : 'Sending...');
+      const res = await callAdminAction('send_broadcast', { message, type: broadcastType, expiresAt, email });
+      if (res.success) {
+        const emailNote = email ? ' Emailed ' + (res.emailed || 0) + ' official' + (res.emailed === 1 ? '' : 's') + '.' : '';
+        hideSaving('Broadcast sent!' + emailNote);
+        if (res.msg) showToast(res.msg);
+        document.getElementById('broadcastText').value = '';
+        document.getElementById('broadcastExpiry').value = '';
+        if (emailBox) emailBox.checked = false;
+        loadActiveBroadcasts();
+      } else {
+        hideSavingError(res.msg || 'Failed to send');
+      }
+    };
+
+    if (email) {
+      showConfirm('Email all officials?', 'This posts the broadcast in the portal and emails it to every official with an email address on file.', doSend);
     } else {
-      hideSavingError(res.msg || 'Failed to send');
+      doSend();
     }
   }
 
