@@ -445,8 +445,16 @@
   }
 
 
+  // Names the OHL feed uses that don't match the Teams list (keyed by city).
+  const TEAM_NAME_ALIASES = {
+    'soo greyhounds': 'sault ste. marie',
+    'soo': 'sault ste. marie'
+  };
+
   function getLogoForTeam(teamName, logoMap) {
     if (!teamName || !logoMap) return "";
+    const alias = TEAM_NAME_ALIASES[teamName.toString().trim().toLowerCase()];
+    if (alias && logoMap[alias]) return logoMap[alias];
     const parts = teamName.toString().trim().split(' ');
     return logoMap[parts.slice(0,3).join(' ').toLowerCase()]
         || logoMap[parts.slice(0,2).join(' ').toLowerCase()]
