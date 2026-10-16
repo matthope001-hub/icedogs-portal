@@ -15,12 +15,23 @@ export default {
     if (url.pathname === "/" || url.pathname === "") {
       const newUrl = new URL(request.url);
       newUrl.pathname = "/test.html";
-      return env.ASSETS.fetch(new Request(newUrl.toString(), request));
+      return noStaleCode(await env.ASSETS.fetch(new Request(newUrl.toString(), request)));
     }
 
-    return env.ASSETS.fetch(request);
+    return noStaleCode(await env.ASSETS.fetch(request), url.pathname);
   }
 };
+
+// HTML, JS and CSS must always be revalidated so phones never keep running an
+// old version after a deploy. "no-cache" still allows a quick 304 when unchanged.
+function noStaleCode(res, path) {
+  const type = res.headers.get("Content-Type") || "";
+  const isCode = !path || /\.(html|js|css)$/i.test(path) || type.includes("text/html");
+  if (!isCode) return res;
+  const out = new Response(res.body, res);
+  out.headers.set("Cache-Control", "no-cache");
+  return out;
+}
 
 
 // ---- Live game ----
