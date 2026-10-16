@@ -1530,6 +1530,20 @@
   }
 
 
+  // Emails the current broadcast text (or a default test message) to the logged-in
+  // admin only — nothing is posted and no other officials are emailed.
+  async function sendTestEmail() {
+    const message = document.getElementById('broadcastText').value.trim();
+    showSaving('Sending test email...');
+    const res = await callAdminAction('send_test_email', { message, type: broadcastType });
+    if (res.success) {
+      hideSaving('Test email sent to you');
+    } else {
+      hideSavingError(res.msg || 'Test email failed');
+    }
+  }
+
+
   async function loadActiveBroadcasts() {
     const { data: broadcasts } = await sb.from('broadcasts').select('id, message, type, sent_at').eq('active', true).order('sent_at', { ascending: false });
     const cont = document.getElementById('activeBroadcastList');

@@ -9,6 +9,8 @@ const GMAIL_APP_PASSWORD = Deno.env.get("GMAIL_APP_PASSWORD")!;
 const PORTAL_URL = "https://icedogofficials.ca";
 // Display name shown in officials' inboxes for portal emails.
 const FROM_NAME = "IceDogs Off-Ice Officials";
+// Shown at the bottom of every portal email — the sending mailbox isn't monitored.
+const NO_REPLY_FOOTER = `<p style="color:#999; font-size:11px; text-align:center; margin:16px 0 0; line-height:1.5;">This email was sent from an unmonitored mailbox. Please do not reply &mdash; contact an IceDogs off-ice admin directly with any questions.</p>`;
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const JWT_SECRET = Deno.env.get("PORTAL_JWT_SECRET")!;
@@ -77,12 +79,15 @@ function smtpClient(): SMTPClient {
   });
 }
 
-// Emails a broadcast to every official with an email address on file.
+// Emails a broadcast to every official with an email address on file, or only
+// to `onlyOfficialId` when given (used by "Send test to me").
 // Returns how many were sent and any per-recipient errors.
-async function emailBroadcast(message: string, type: string, sentBy: string): Promise<{ sent: number; errors: string[] }> {
-  const { data: officials } = await supabase.from("officials").select("name, email").not("email", "is", null);
+async function emailBroadcast(message: string, type: string, sentBy: string, onlyOfficialId?: string, isTest = false): Promise<{ sent: number; errors: string[] }> {
+  let query = supabase.from("officials").select("name, email").not("email", "is", null);
+  if (onlyOfficialId) query = query.eq("id", onlyOfficialId);
+  const { data: officials } = await query;
   const recipients = (officials || []).filter((o: any) => o.email && String(o.email).includes("@"));
-  if (!recipients.length) return { sent: 0, errors: ["No officials have an email address on file"] };
+  if (!recipients.length) return { sent: 0, errors: [onlyOfficialId ? "Your official profile has no email address on file" : "No officials have an email address on file"] };
 
   const TYPE_CFG: Record<string, { label: string; color: string }> = {
     urgent:   { label: "URGENT",   color: "#C8102E" },
@@ -92,7 +97,7 @@ async function emailBroadcast(message: string, type: string, sentBy: string): Pr
   const cfg = TYPE_CFG[type] || TYPE_CFG.info;
   const subjectPrefix = type === "urgent" ? "URGENT: " : (type === "reminder" ? "Reminder: " : "");
   const firstLine = message.split("\n")[0].trim();
-  const subject = subjectPrefix + "IceDogs Off-Ice — " + (firstLine.length > 60 ? firstLine.slice(0, 57) + "..." : firstLine);
+  const subject = (isTest ? "[TEST] " : "") + subjectPrefix + "IceDogs Off-Ice — " + (firstLine.length > 60 ? firstLine.slice(0, 57) + "..." : firstLine);
   const bodyHtml = escapeHtml(message).replace(/\r?\n/g, "<br>");
 
   const client = smtpClient();
@@ -120,6 +125,7 @@ async function emailBroadcast(message: string, type: string, sentBy: string): Pr
                 <a href="${PORTAL_URL}" style="background:#C8102E; color:white; padding:12px 28px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:14px; display:inline-block;">Open the Portal →</a>
               </p>
             </div>
+            ${NO_REPLY_FOOTER}
           </div>`,
       });
       sent++;
@@ -183,6 +189,16 @@ Deno.serve(async (req) => {
         }), { headers: { ...cors, "Content-Type": "application/json" } });
       }
       return ok(cors);
+    }
+
+    // Sends the broadcast email only to the logged-in admin, without posting it.
+    if (action === "send_test_email") {
+      const message = String(payload.message || "").trim() || "This is a test email from the IceDogs Off-Ice Officials Portal.";
+      const { sent, errors } = await emailBroadcast(message, String(payload.type || "info"), session.name, session.id, true);
+      if (!sent) {
+        return new Response(JSON.stringify({ success: false, msg: errors.join(" | ") || "Test email failed" }), { status: 500, headers: cors });
+      }
+      return new Response(JSON.stringify({ success: true, emailed: sent }), { headers: { ...cors, "Content-Type": "application/json" } });
     }
 
     if (action === "deactivate_broadcast") {
@@ -491,6 +507,7 @@ Deno.serve(async (req) => {
                     <a href="${PORTAL_URL}" style="background:#C8102E; color:white; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:15px; display:inline-block;">Submit Availability →</a>
                   </p>
                 </div>
+                ${NO_REPLY_FOOTER}
               </div>`,
           });
           sent++;
