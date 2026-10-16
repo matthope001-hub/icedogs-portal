@@ -4,3 +4,7 @@ src
 src/**
 wrangler.jsonc
 .assetsignore
+.git
+.git/**
+.github
+.github/**

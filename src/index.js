@@ -7,6 +7,12 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    // Never serve hidden files/folders (.git, .env, .assetsignore, ...) —
+    // scanners probe for these constantly.
+    if (/(^|\/)\.[^/]/.test(url.pathname)) {
+      return new Response("Not found", { status: 404 });
+    }
+
     if (url.pathname === "/api/live-game") {
       if (url.searchParams.get("debug") === "1") return handleLiveGameDebug();
       return handleLiveGame(request);
