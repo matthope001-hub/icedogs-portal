@@ -317,7 +317,8 @@
       + (totalPlayed > 0 ? '<div style="font-size:10px; font-weight:800; color:var(--muted-text); letter-spacing:0.5px;">W - L - OTL - SOL</div>' : '')
       + (totalPlayed > 0 ? '<div style="font-size:11px; color:var(--muted-text); margin-top:3px;">' + totalPlayed + ' game' + (totalPlayed !== 1 ? 's' : '') + ' played &middot; ' + (wins * 2 + otLosses + soLosses) + ' pts</div>' : '')
       + (lastSyncLabel ? '<div style="font-size:10px; color:var(--muted-text); margin-top:6px; border-top:1px solid var(--ios-sep); padding-top:6px;">Last synced ' + lastSyncLabel + '</div>' : '')
-      + '</div>';
+      + '</div>'
+      + '<div id="draftPicksCont"></div>';
 
     monthOrder.forEach(monthKey => {
       const mGames = monthMap[monthKey];
@@ -355,6 +356,82 @@
     });
 
     cont.innerHTML = html;
+    loadDraftPicks(logoMap);
+  }
+
+
+  // ---- Draft picks (Season tab, under the record card) ----
+  // Data: draft_picks table, synced nightly from the public OHL Draft Pick
+  // Database sheet. Own picks are plain, acquired picks are highlighted with the
+  // original team's logo, rounds the IceDogs have traded away are greyed out.
+  const DRAFT_TEAM_ABBR = {
+    BAR: 'Barrie', BRAM: 'Brampton', BFD: 'Brantford', ER: 'Erie', FLNT: 'Flint',
+    GUE: 'Guelph', KGN: 'Kingston', KIT: 'Kitchener', LDN: 'London', NB: 'North Bay',
+    OSH: 'Oshawa', OTT: 'Ottawa', OS: 'Owen Sound', PBO: 'Peterborough', SAG: 'Saginaw',
+    SAR: 'Sarnia', SSM: 'Sault Ste. Marie', SBY: 'Sudbury', WSR: 'Windsor'
+  };
+
+  function ordinal(n) {
+    const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  }
+
+  async function loadDraftPicks(logoMap) {
+    const cont = document.getElementById('draftPicksCont');
+    if (!cont) return;
+    const { data: picks } = await sb.from('draft_picks').select('year, round, from_team, conditional').order('year').order('round');
+    if (!picks || !picks.length) { cont.innerHTML = ''; return; }
+    const { data: syncSetting } = await sb.from('app_settings').select('value').eq('key', 'last_draft_picks_sync').maybeSingle();
+    const syncedLabel = syncSetting && syncSetting.value
+      ? new Date(syncSetting.value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : '';
+
+    const byYear = {};
+    picks.forEach(p => { (byYear[p.year] = byYear[p.year] || []).push(p); });
+    const chip = (text, style, title) =>
+      '<span title="' + esc(title || '') + '" style="display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:800; padding:3px 7px; border-radius:6px; ' + style + '">' + text + '</span>';
+
+    let rowsHtml = '';
+    Object.keys(byYear).sort().forEach(year => {
+      const list = byYear[year];
+      let chips = '';
+      for (let round = 1; round <= 15; round++) {
+        const inRound = list.filter(p => p.round === round);
+        const own = inRound.find(p => !p.from_team);
+        if (own) {
+          chips += chip(ordinal(round) + (own.conditional ? ' &#10033;' : ''),
+            'background:var(--ios-sep); color:var(--ios-text);',
+            'Own ' + ordinal(round) + '-round pick' + (own.conditional ? ' (conditional)' : ''));
+        } else {
+          chips += chip(ordinal(round),
+            'background:transparent; color:var(--muted-text); text-decoration:line-through; opacity:0.55; border:1px dashed var(--ios-sep);',
+            ordinal(round) + '-round pick traded away');
+        }
+        inRound.filter(p => p.from_team).forEach(p => {
+          const city = DRAFT_TEAM_ABBR[p.from_team] || p.from_team;
+          const logo = getLogoForTeam(city, logoMap);
+          chips += chip(
+            (logo ? '<img src="' + logo + '" alt="" style="width:14px; height:14px; object-fit:contain;">' : '')
+              + esc(p.from_team) + ' ' + ordinal(round) + (p.conditional ? ' &#10033;' : ''),
+            'background:rgba(200,16,46,0.10); color:var(--icedogs-red, #C8102E); border:1px solid rgba(200,16,46,0.35);',
+            city + "'s " + ordinal(round) + '-round pick' + (p.conditional ? ' (conditional)' : ''));
+        });
+      }
+      rowsHtml += '<div style="padding:10px 14px; border-bottom:1px solid var(--ios-sep);">'
+        + '<div style="font-weight:900; font-size:13px; margin-bottom:6px;">' + esc(year) + '</div>'
+        + '<div style="display:flex; flex-wrap:wrap; gap:5px;">' + chips + '</div></div>';
+    });
+
+    cont.innerHTML = '<div class="card" style="padding:0; overflow:hidden; margin-bottom:12px;">'
+      + '<div onclick="toggleSeasonMonth(\'draftPicksBody\')" style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:#fafafa; border-bottom:1px solid var(--ios-sep); cursor:pointer;">'
+      + '<span style="font-weight:900; font-size:13px; text-transform:uppercase;">Draft Picks</span>'
+      + '<span id="draftPicksBody_chev" style="color:var(--muted-text); font-size:12px;">▲</span></div>'
+      + '<div id="draftPicksBody">' + rowsHtml
+      + '<div style="padding:10px 14px; font-size:10px; color:var(--muted-text); line-height:1.5;">'
+      + '<span style="color:var(--icedogs-red, #C8102E); font-weight:800;">Red</span> = acquired from another team &middot; '
+      + '<span style="text-decoration:line-through;">Struck out</span> = traded away &middot; &#10033; = conditional<br>'
+      + 'Source: OHL Draft Pick Database (@GeneralsUpdates), not guaranteed 100% accurate' + (syncedLabel ? ' &middot; updated ' + syncedLabel : '')
+      + '</div></div></div>';
   }
 
 
