@@ -317,8 +317,7 @@
       + (totalPlayed > 0 ? '<div style="font-size:10px; font-weight:800; color:var(--muted-text); letter-spacing:0.5px;">W - L - OTL - SOL</div>' : '')
       + (totalPlayed > 0 ? '<div style="font-size:11px; color:var(--muted-text); margin-top:3px;">' + totalPlayed + ' game' + (totalPlayed !== 1 ? 's' : '') + ' played &middot; ' + (wins * 2 + otLosses + soLosses) + ' pts</div>' : '')
       + (lastSyncLabel ? '<div style="font-size:10px; color:var(--muted-text); margin-top:6px; border-top:1px solid var(--ios-sep); padding-top:6px;">Last synced ' + lastSyncLabel + '</div>' : '')
-      + '</div>'
-      + '<div id="draftPicksCont"></div>';
+      + '</div>';
 
     monthOrder.forEach(monthKey => {
       const mGames = monthMap[monthKey];
@@ -355,6 +354,8 @@
         + '</div></div>';
     });
 
+    // Draft picks go below the full schedule.
+    html += '<div id="draftPicksCont"></div>';
     cont.innerHTML = html;
     loadDraftPicks(logoMap);
   }
