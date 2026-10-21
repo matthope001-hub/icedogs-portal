@@ -283,22 +283,26 @@
       return;
     }
 
-    let wins = 0, losses = 0, ties = 0;
+    // OHL-style record: W-L-OTL-SOL. A loss in overtime counts as OTL and a
+    // shootout loss as SOL (both earn a point), not as a regulation L.
+    let wins = 0, losses = 0, otLosses = 0, soLosses = 0;
     const enriched = games.map(g => {
       const hasScore = g.home_score !== null && g.away_score !== null;
       let result = null;
       if (hasScore) {
         const niagaraScore = g.is_home ? g.home_score : g.away_score;
         const oppScore = g.is_home ? g.away_score : g.home_score;
-        result = niagaraScore > oppScore ? 'W' : (niagaraScore < oppScore ? 'L' : 'T');
-        if (result === 'W') wins++; else if (result === 'L') losses++; else ties++;
+        if (niagaraScore > oppScore) { result = 'W'; wins++; }
+        else if (g.shootout) { result = 'SOL'; soLosses++; }
+        else if (g.overtime) { result = 'OTL'; otLosses++; }
+        else { result = 'L'; losses++; }
       }
       const opponent = g.is_home ? g.away_team : g.home_team;
       return { ...g, hasScore, result, opponent };
     });
 
-    const totalPlayed = wins + losses + ties;
-    const recordStr = totalPlayed > 0 ? wins + '-' + losses + (ties > 0 ? '-' + ties : '') : 'Season not started';
+    const totalPlayed = wins + losses + otLosses + soLosses;
+    const recordStr = totalPlayed > 0 ? [wins, losses, otLosses, soLosses].join('-') : 'Season not started';
 
     const monthMap = {}, monthOrder = [];
     enriched.forEach(g => {
@@ -310,7 +314,8 @@
     let html = '<div class="card" style="padding:14px 16px; border:2px solid var(--icedogs-red); margin-bottom:12px; text-align:center;">'
       + '<div style="font-size:10px; font-weight:900; color:var(--muted-text); text-transform:uppercase; margin-bottom:4px;">SEASON RECORD</div>'
       + '<div style="font-size:28px; font-weight:900;">' + recordStr + '</div>'
-      + (totalPlayed > 0 ? '<div style="font-size:11px; color:var(--muted-text); margin-top:3px;">' + totalPlayed + ' game' + (totalPlayed !== 1 ? 's' : '') + ' played</div>' : '')
+      + (totalPlayed > 0 ? '<div style="font-size:10px; font-weight:800; color:var(--muted-text); letter-spacing:0.5px;">W - L - OTL - SOL</div>' : '')
+      + (totalPlayed > 0 ? '<div style="font-size:11px; color:var(--muted-text); margin-top:3px;">' + totalPlayed + ' game' + (totalPlayed !== 1 ? 's' : '') + ' played &middot; ' + (wins * 2 + otLosses + soLosses) + ' pts</div>' : '')
       + (lastSyncLabel ? '<div style="font-size:10px; color:var(--muted-text); margin-top:6px; border-top:1px solid var(--ios-sep); padding-top:6px;">Last synced ' + lastSyncLabel + '</div>' : '')
       + '</div>';
 
@@ -328,8 +333,11 @@
             const homeAway = g.is_home
               ? '<span style="font-size:9px; font-weight:900; background:var(--icedogs-red); color:white; padding:1px 5px; border-radius:3px; margin-left:4px;">HOME</span>'
               : '<span style="font-size:9px; font-weight:900; background:var(--ios-sep); color:var(--muted-text); padding:1px 5px; border-radius:3px; margin-left:4px;">AWAY</span>';
+            const extraTag = g.hasScore && (g.shootout || g.overtime)
+              ? '<span style="font-size:9px; font-weight:900; color:var(--muted-text); margin-left:3px;">' + (g.shootout ? 'SO' : 'OT') + '</span>'
+              : '';
             const scoreHtml = g.hasScore
-              ? '<div style="font-size:15px; font-weight:900;">' + (g.is_home ? g.home_score : g.away_score) + ' – ' + (g.is_home ? g.away_score : g.home_score) + '</div>'
+              ? '<div style="font-size:15px; font-weight:900;">' + (g.is_home ? g.home_score : g.away_score) + ' – ' + (g.is_home ? g.away_score : g.home_score) + extraTag + '</div>'
               : '<div style="font-size:11px; font-weight:700; color:var(--muted-text);">' + (g.game_time || 'Upcoming') + '</div>';
             const badge = g.hasScore
               ? '<div class="result-badge result-' + g.result + '">' + g.result + '</div>'
