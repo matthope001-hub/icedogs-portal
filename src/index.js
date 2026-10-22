@@ -309,17 +309,17 @@ async function handleLiveGameDebug() {
 // Reads two public CHL pages and returns JSON:
 //  - Media Notes (chl.ca/ohl/media-notes/): the SUSPENSIONS table and the
 //    RECENT TRANSACTIONS table (Date, Team, gave, To, Team, gave).
-//  - OHL news RSS (chl.ca/ohl/feed/): latest stories with photo and summary.
+//  - IceDogs news RSS (chl.ca/ohl-icedogs/feed/): latest team stories.
 // Cached for 30 minutes in Cloudflare's cache so visitors don't hit chl.ca.
 // Each source is independent: if one fails the other still comes back.
 
 const MEDIA_NOTES_URL = "https://chl.ca/ohl/media-notes/";
-const OHL_RSS_URL = "https://chl.ca/ohl/feed/";
+const OHL_RSS_URL = "https://chl.ca/ohl-icedogs/feed/";
 const INFO_CACHE_SECONDS = 1800;
 
 async function handleOhlInfo(forceRefresh) {
   const headers = { "Content-Type": "application/json", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" };
-  const cacheKey = new Request("https://icedogofficials.ca/__cache/ohl-info-v1");
+  const cacheKey = new Request("https://icedogofficials.ca/__cache/ohl-info-v2");
   if (!forceRefresh) {
     try {
       const hit = await caches.default.match(cacheKey);
@@ -404,7 +404,7 @@ async function fetchMediaNotes() {
 
 async function fetchOhlNews() {
   const res = await fetch(OHL_RSS_URL, { headers: { "User-Agent": "Mozilla/5.0 IceDogsOfficialsPortal" } });
-  if (!res.ok) throw new Error("OHL news HTTP " + res.status);
+  if (!res.ok) throw new Error("IceDogs news HTTP " + res.status);
   const xml = await res.text();
   const items = [];
   const re = /<item>([\s\S]*?)<\/item>/g;
@@ -418,7 +418,6 @@ async function fetchOhlNews() {
     items.push({
       title, link: tag("link"), date: tag("pubDate"), summary: description.slice(0, 220),
       image: img ? img[1] : "",
-      icedogs: /icedogs|niagara/i.test(title + " " + description),
     });
   }
   return { items };

@@ -371,8 +371,8 @@
     return '<div class="card" style="padding:0; overflow:hidden; margin-bottom:12px;">'
       + '<div onclick="toggleSeasonMonth(\'' + id + '\')" style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:#fafafa; border-bottom:1px solid var(--ios-sep); cursor:pointer;">'
       + '<span style="font-weight:900; font-size:13px; text-transform:uppercase;">' + title + '</span>'
-      + '<span id="' + id + '_chev" style="color:var(--muted-text); font-size:12px;">▲</span></div>'
-      + '<div id="' + id + '">' + bodyHtml + '</div></div>';
+      + '<span id="' + id + '_chev" style="color:var(--muted-text); font-size:12px;">▼</span></div>'
+      + '<div id="' + id + '" style="display:none;">' + bodyHtml + '</div></div>';
   }
 
   function infoEmpty(text) {
@@ -428,19 +428,18 @@
       + '<div style="text-align:right;"><div style="font-weight:800; font-size:12px;">' + esc(sp.discipline) + '</div>'
       + (sp.eligible ? '<div style="font-size:10px; color:var(--muted-text);">Back ' + esc(sp.eligible) + '</div>' : '') + '</div></div>').join('');
 
-    // OHL news
+    // IceDogs news (team site feed)
     let newsHtml;
     const news = (info && info.news) || [];
-    if (!news.length) newsHtml = infoEmpty('Couldn\'t load OHL news right now.');
+    if (!news.length) newsHtml = infoEmpty('Couldn\'t load IceDogs news right now.');
     else newsHtml = news.map(n => {
       const when = n.date ? new Date(n.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
       return '<a href="' + esc(n.link) + '" target="_blank" rel="noopener" style="display:flex; gap:10px; padding:10px 14px; border-bottom:1px solid var(--ios-sep); text-decoration:none; color:inherit;">'
         + (n.image ? '<img src="' + esc(n.image) + '" alt="" loading="lazy" style="width:84px; height:48px; object-fit:cover; border-radius:6px; flex-shrink:0; background:var(--ios-sep);">' : '')
         + '<div style="flex:1; min-width:0;">'
-        + (n.icedogs ? '<span style="font-size:9px; font-weight:900; background:#C8102E; color:white; padding:1px 6px; border-radius:3px; margin-right:4px;">ICEDOGS</span>' : '')
         + '<span style="font-weight:800; font-size:13px; line-height:1.3;">' + esc(n.title) + '</span>'
         + '<div style="font-size:11px; color:var(--muted-text); margin-top:2px;">' + esc(when) + '</div></div></a>';
-    }).join('') + '<a href="https://chl.ca/ohl/tag/ohl-news/" target="_blank" rel="noopener" style="display:block; padding:10px 14px; font-size:12px; font-weight:800; color:#C8102E; text-decoration:none;">More OHL news &rarr;</a>';
+    }).join('') + '<a href="https://chl.ca/ohl-icedogs/" target="_blank" rel="noopener" style="display:block; padding:10px 14px; font-size:12px; font-weight:800; color:#C8102E; text-decoration:none;">More IceDogs news &rarr;</a>';
 
     const updated = info && info.fetched_at
       ? '<div style="font-size:10px; color:var(--muted-text); text-align:center; margin:4px 0 12px;">Transactions, suspensions &amp; news from chl.ca &middot; updated ' + new Date(info.fetched_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + '</div>'
@@ -449,7 +448,7 @@
     cont.innerHTML = infoCard('IceDogs Transactions', txHtml, 'infoTx')
       + infoCard('OHL Suspensions', suspHtml, 'infoSusp')
       + '<div id="draftPicksCont"></div>'
-      + infoCard('OHL News', newsHtml, 'infoNews')
+      + infoCard('IceDogs News', newsHtml, 'infoNews')
       + updated;
     loadDraftPicks(logoMap);
   }
@@ -542,8 +541,8 @@
     cont.innerHTML = '<div class="card" style="padding:0; overflow:hidden; margin-bottom:12px;">'
       + '<div onclick="toggleSeasonMonth(\'draftPicksBody\')" style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:#fafafa; border-bottom:1px solid var(--ios-sep); cursor:pointer;">'
       + '<span style="font-weight:900; font-size:13px; text-transform:uppercase;">Draft Picks</span>'
-      + '<span id="draftPicksBody_chev" style="color:var(--muted-text); font-size:12px;">▲</span></div>'
-      + '<div id="draftPicksBody">' + rowsHtml
+      + '<span id="draftPicksBody_chev" style="color:var(--muted-text); font-size:12px;">▼</span></div>'
+      + '<div id="draftPicksBody" style="display:none;">' + rowsHtml
       + '<div style="padding:10px 14px; font-size:10px; color:var(--muted-text); line-height:1.5;">'
       + '<span style="color:var(--icedogs-red, #C8102E); font-weight:800;">Red</span> = acquired from another team &middot; '
       + '<span style="text-decoration:line-through;">Struck out</span> = traded away &middot; &#10033; = conditional &middot; Tap a pick for trade details<br>'
