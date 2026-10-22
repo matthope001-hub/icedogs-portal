@@ -309,7 +309,7 @@
     if (tab === 'myGames') loadMyGames();
     if (tab === 'crew') loadCrew();
     if (tab === 'season') loadSeason();
-    if (tab === 'info') loadInfo();
+    if (tab === 'info') { loadInfo(); markInfoSeen(); }
     if (tab === 'editor') loadEditorMonths();
     if (tab === 'profile') loadProfile();
     if (tab === 'admin') loadAdmin();
@@ -544,3 +544,18 @@
         if (cont) cont.innerHTML = '<div style="padding:14px; font-size:12px; color:#C8102E; font-weight:700;">Error loading games: ' + (e.message || e) + '</div>';
       });
   };
+
+
+// "NEW" badge on the Info tab button until the user opens that tab once (per device).
+const INFO_SEEN_KEY = 'infoTabSeen_v1';
+function markInfoSeen() {
+  try { localStorage.setItem(INFO_SEEN_KEY, '1'); } catch (e) { /* storage blocked */ }
+  const b = document.getElementById('navInfoNew');
+  if (b) b.style.display = 'none';
+}
+(function showInfoNewBadge() {
+  let seen = false;
+  try { seen = localStorage.getItem(INFO_SEEN_KEY) === '1'; } catch (e) { seen = false; }
+  const b = document.getElementById('navInfoNew');
+  if (b && !seen) b.style.display = '';
+})();
