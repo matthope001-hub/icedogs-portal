@@ -380,17 +380,19 @@
   async function loadDraftPicks(logoMap) {
     const cont = document.getElementById('draftPicksCont');
     if (!cont) return;
-    const { data: picks } = await sb.from('draft_picks').select('year, round, from_team, conditional').order('year').order('round');
+    const { data: picks } = await sb.from('draft_picks').select('year, round, from_team, conditional, traded_away, details').order('year').order('round');
     if (!picks || !picks.length) { cont.innerHTML = ''; return; }
     const { data: syncSetting } = await sb.from('app_settings').select('value').eq('key', 'last_draft_picks_sync').maybeSingle();
     const syncedLabel = syncSetting && syncSetting.value
       ? new Date(syncSetting.value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       : '';
 
+    window._draftPicks = picks;
     const byYear = {};
     picks.forEach(p => { (byYear[p.year] = byYear[p.year] || []).push(p); });
-    const chip = (text, style, title) =>
-      '<span title="' + esc(title || '') + '" style="display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:800; padding:3px 7px; border-radius:6px; ' + style + '">' + text + '</span>';
+    // Every chip is tappable; picks with trade/condition details open a popup.
+    const chip = (text, style, title, pick) =>
+      '<button type="button" onclick="showDraftPickDetails(' + picks.indexOf(pick) + ')" title="' + esc(title || '') + '" style="display:inline-flex; align-items:center; gap:3px; font-family:inherit; font-size:11px; font-weight:800; padding:3px 7px; border-radius:6px; cursor:pointer; ' + style + '">' + text + (pick && pick.details ? '<span style="font-size:8px; opacity:0.6;">&#9432;</span>' : '') + '</button>';
 
     let rowsHtml = '';
     Object.keys(byYear).sort().forEach(year => {
@@ -398,15 +400,16 @@
       let chips = '';
       for (let round = 1; round <= 15; round++) {
         const inRound = list.filter(p => p.round === round);
-        const own = inRound.find(p => !p.from_team);
+        const own = inRound.find(p => !p.from_team && !p.traded_away);
+        const gone = inRound.find(p => p.traded_away);
         if (own) {
           chips += chip(ordinal(round) + (own.conditional ? ' &#10033;' : ''),
-            'background:var(--ios-sep); color:var(--ios-text);',
-            'Own ' + ordinal(round) + '-round pick' + (own.conditional ? ' (conditional)' : ''));
+            'background:var(--ios-sep); color:var(--ios-text); border:1px solid transparent;',
+            'Own ' + ordinal(round) + '-round pick' + (own.conditional ? ' (conditional)' : ''), own);
         } else {
-          chips += chip(ordinal(round),
-            'background:transparent; color:var(--muted-text); text-decoration:line-through; opacity:0.55; border:1px dashed var(--ios-sep);',
-            ordinal(round) + '-round pick traded away');
+          chips += chip('<span style="text-decoration:line-through;">' + ordinal(round) + '</span>',
+            'background:transparent; color:var(--muted-text); opacity:0.6; border:1px dashed var(--ios-sep);',
+            ordinal(round) + '-round pick traded away', gone || null);
         }
         inRound.filter(p => p.from_team).forEach(p => {
           const city = DRAFT_TEAM_ABBR[p.from_team] || p.from_team;
@@ -415,7 +418,7 @@
             (logo ? '<img src="' + logo + '" alt="" style="width:14px; height:14px; object-fit:contain;">' : '')
               + esc(p.from_team) + ' ' + ordinal(round) + (p.conditional ? ' &#10033;' : ''),
             'background:rgba(200,16,46,0.10); color:var(--icedogs-red, #C8102E); border:1px solid rgba(200,16,46,0.35);',
-            city + "'s " + ordinal(round) + '-round pick' + (p.conditional ? ' (conditional)' : ''));
+            city + "'s " + ordinal(round) + '-round pick' + (p.conditional ? ' (conditional)' : ''), p);
         });
       }
       rowsHtml += '<div style="padding:10px 14px; border-bottom:1px solid var(--ios-sep);">'
@@ -430,9 +433,66 @@
       + '<div id="draftPicksBody">' + rowsHtml
       + '<div style="padding:10px 14px; font-size:10px; color:var(--muted-text); line-height:1.5;">'
       + '<span style="color:var(--icedogs-red, #C8102E); font-weight:800;">Red</span> = acquired from another team &middot; '
-      + '<span style="text-decoration:line-through;">Struck out</span> = traded away &middot; &#10033; = conditional<br>'
+      + '<span style="text-decoration:line-through;">Struck out</span> = traded away &middot; &#10033; = conditional &middot; Tap a pick for trade details<br>'
       + 'Source: OHL Draft Pick Database (@GeneralsUpdates), not guaranteed 100% accurate' + (syncedLabel ? ' &middot; updated ' + syncedLabel : '')
       + '</div></div></div>';
+  }
+
+
+  // Pick abbreviations as written in the trade tabs ("KGN 4 2028") -> readable.
+  function fmtTradeItem(item) {
+    const m = String(item).replace(/\*$/, '').trim().match(/^([A-Za-z]{2,5})\s+(\d{1,2})\s+(\d{4})$/);
+    if (!m) return esc(item);
+    const abbr = m[1].toUpperCase();
+    const team = (abbr === 'NIA' || abbr === 'NIAG') ? 'IceDogs' : (DRAFT_TEAM_ABBR[abbr === 'SOO' ? 'SSM' : abbr] || abbr);
+    return esc(team + ' ' + ordinal(Number(m[2])) + ' (' + m[3] + ')') + (/\*$/.test(item) ? ' &#10033;' : '');
+  }
+
+  function showDraftPickDetails(i) {
+    const p = (window._draftPicks || [])[i];
+    if (!p) return;
+    const fromCity = p.from_team ? (DRAFT_TEAM_ABBR[p.from_team] || p.from_team) : '';
+    const title = p.year + ' &middot; ' + (p.from_team ? esc(fromCity) + "'s " : 'IceDogs ') + ordinal(p.round) + ' round';
+    const t = p.details && p.details.trade;
+    const partner = t ? (DRAFT_TEAM_ABBR[t.partner] || t.partner) : '';
+    let status;
+    if (p.traded_away) status = t ? 'Traded to ' + esc(partner) : 'Traded away';
+    else if (p.from_team) status = 'Acquired from ' + esc(t ? partner : fromCity);
+    else status = p.round === 1 ? "IceDogs' own pick (1st-round picks can't be traded)" : "IceDogs' own pick";
+    const list = (items) => items && items.length
+      ? '<ul style="margin:4px 0 0; padding-left:18px;">' + items.map(it => '<li>' + fmtTradeItem(it) + '</li>').join('') + '</ul>'
+      : '<div style="color:var(--muted-text);">&mdash;</div>';
+    let body = '<div style="font-weight:800; margin-bottom:10px;">' + status + '</div>';
+    if (t) {
+      body += (t.date ? '<div style="font-size:12px; color:var(--muted-text); margin-bottom:10px;">Trade date: ' + esc(t.date) + '</div>' : '')
+        + '<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:12px;">'
+        + '<div><div style="font-size:10px; font-weight:900; color:#15803d; text-transform:uppercase;">IceDogs got</div>' + list(t.got) + '</div>'
+        + '<div><div style="font-size:10px; font-weight:900; color:#C8102E; text-transform:uppercase;">IceDogs gave</div>' + list(t.gave) + '</div>'
+        + '</div>'
+        + (t.note ? '<div style="font-size:12px; margin-top:10px; color:var(--muted-text);">' + esc(t.note) + '</div>' : '');
+    } else if (p.from_team || p.traded_away) {
+      body += '<div style="font-size:12px; color:var(--muted-text);">Trade details aren\'t listed in the source sheet.</div>';
+    }
+    if (p.details && p.details.condition) {
+      body += '<div style="margin-top:12px; padding:8px 10px; border-radius:8px; background:rgba(180,83,9,0.10); border:1px solid rgba(180,83,9,0.3); font-size:12px;">'
+        + '<div style="font-size:10px; font-weight:900; color:#b45309; text-transform:uppercase; margin-bottom:2px;">&#10033; Condition</div>' + esc(p.details.condition) + '</div>';
+    } else if (p.conditional) {
+      body += '<div style="margin-top:12px; font-size:12px; color:#b45309;">&#10033; Conditional pick &mdash; condition details not listed.</div>';
+    }
+
+    let overlay = document.getElementById('draftPickOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'draftPickOverlay';
+      overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;';
+      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = '<div role="dialog" aria-modal="true" style="background:var(--ios-card, #fff); color:var(--ios-text, #111); border-radius:14px; width:100%; max-width:380px; max-height:80vh; overflow:auto; box-shadow:0 10px 30px rgba(0,0,0,0.3);">'
+      + '<div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--ios-sep);">'
+      + '<div style="font-weight:900; font-size:14px;">' + title + '</div>'
+      + '<button type="button" aria-label="Close" onclick="document.getElementById(\'draftPickOverlay\').remove()" style="border:none; background:var(--ios-sep); border-radius:50%; width:30px; height:30px; font-size:16px; cursor:pointer;">&times;</button></div>'
+      + '<div style="padding:14px; font-size:13px; line-height:1.45;">' + body + '</div></div>';
   }
 
 
