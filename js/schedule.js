@@ -359,9 +359,98 @@
         + '</div></div>';
     });
 
-    // Draft picks go below the full schedule.
-    html += '<div id="draftPicksCont"></div>';
     cont.innerHTML = html;
+  }
+
+
+  // ---- Info tab: IceDogs transactions, suspensions, draft picks, OHL news ----
+  // Transactions/suspensions come from chl.ca/ohl/media-notes and news from the
+  // OHL RSS feed, both read by the Worker (/api/ohl-info, cached 30 min).
+  // Draft picks come from the draft_picks table (see sync-draft-picks).
+  function infoCard(title, bodyHtml, id) {
+    return '<div class="card" style="padding:0; overflow:hidden; margin-bottom:12px;">'
+      + '<div onclick="toggleSeasonMonth(\'' + id + '\')" style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:#fafafa; border-bottom:1px solid var(--ios-sep); cursor:pointer;">'
+      + '<span style="font-weight:900; font-size:13px; text-transform:uppercase;">' + title + '</span>'
+      + '<span id="' + id + '_chev" style="color:var(--muted-text); font-size:12px;">▲</span></div>'
+      + '<div id="' + id + '">' + bodyHtml + '</div></div>';
+  }
+
+  function infoEmpty(text) {
+    return '<div style="padding:14px; font-size:12px; color:var(--muted-text);">' + text + '</div>';
+  }
+
+  async function loadInfo() {
+    const cont = document.getElementById('infoCont');
+    cont.innerHTML = skeletonRows(4);
+
+    const { data: teams } = await sb.from('teams').select('name, logo_url');
+    const logoMap = {};
+    (teams || []).forEach(t => { if (t.name && t.logo_url) logoMap[t.name.toLowerCase()] = t.logo_url; });
+
+    let info = null;
+    try { info = await (await fetch('/api/ohl-info')).json(); } catch (e) { info = null; }
+
+    const teamName = (abbr) => {
+      const a = String(abbr || '').toUpperCase();
+      return DRAFT_TEAM_ABBR[a === 'SOO' ? 'SSM' : a] || abbr;
+    };
+    const teamLogo = (abbr) => {
+      const logo = getLogoForTeam(teamName(abbr), logoMap);
+      return logo ? '<img src="' + logo + '" alt="" style="width:22px; height:22px; object-fit:contain; flex-shrink:0;">' : '';
+    };
+    const itemList = (items) => (items && items.length)
+      ? items.map(it => '<div>' + fmtTradeItem(it) + '</div>').join('')
+      : '<div style="color:var(--muted-text);">&mdash;</div>';
+
+    // IceDogs transactions
+    let txHtml;
+    if (!info || info.error) txHtml = infoEmpty('Couldn\'t load transactions right now.');
+    else if (!info.icedogs_transactions || !info.icedogs_transactions.length) txHtml = infoEmpty('No recent IceDogs transactions.');
+    else txHtml = info.icedogs_transactions.map(t =>
+      '<div style="padding:10px 14px; border-bottom:1px solid var(--ios-sep);">'
+      + '<div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">' + teamLogo(t.partner)
+      + '<div style="font-weight:800; font-size:13px;">Trade with ' + esc(teamName(t.partner)) + '</div>'
+      + '<div style="margin-left:auto; font-size:11px; color:var(--muted-text);">' + esc(t.date) + '</div></div>'
+      + '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:12px;">'
+      + '<div><div style="font-size:10px; font-weight:900; color:#15803d; text-transform:uppercase;">IceDogs got</div>' + itemList(t.got) + '</div>'
+      + '<div><div style="font-size:10px; font-weight:900; color:#C8102E; text-transform:uppercase;">IceDogs gave</div>' + itemList(t.gave) + '</div>'
+      + '</div></div>').join('');
+
+    // League suspensions (IceDogs players highlighted)
+    let suspHtml;
+    if (!info || info.error) suspHtml = infoEmpty('Couldn\'t load suspensions right now.');
+    else if (!info.suspensions || !info.suspensions.length) suspHtml = infoEmpty('No current suspensions.');
+    else suspHtml = info.suspensions.map(sp =>
+      '<div style="display:flex; align-items:center; gap:10px; padding:9px 14px; border-bottom:1px solid var(--ios-sep);' + (sp.icedogs ? ' background:rgba(200,16,46,0.07);' : '') + '">'
+      + teamLogo(sp.team)
+      + '<div style="flex:1; min-width:0;"><div style="font-weight:800; font-size:13px;' + (sp.icedogs ? ' color:#C8102E;' : '') + '">' + esc(sp.player) + '</div>'
+      + '<div style="font-size:11px; color:var(--muted-text);">' + esc(teamName(sp.team)) + ' &middot; ' + esc(sp.date) + '</div></div>'
+      + '<div style="text-align:right;"><div style="font-weight:800; font-size:12px;">' + esc(sp.discipline) + '</div>'
+      + (sp.eligible ? '<div style="font-size:10px; color:var(--muted-text);">Back ' + esc(sp.eligible) + '</div>' : '') + '</div></div>').join('');
+
+    // OHL news
+    let newsHtml;
+    const news = (info && info.news) || [];
+    if (!news.length) newsHtml = infoEmpty('Couldn\'t load OHL news right now.');
+    else newsHtml = news.map(n => {
+      const when = n.date ? new Date(n.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+      return '<a href="' + esc(n.link) + '" target="_blank" rel="noopener" style="display:flex; gap:10px; padding:10px 14px; border-bottom:1px solid var(--ios-sep); text-decoration:none; color:inherit;">'
+        + (n.image ? '<img src="' + esc(n.image) + '" alt="" loading="lazy" style="width:84px; height:48px; object-fit:cover; border-radius:6px; flex-shrink:0; background:var(--ios-sep);">' : '')
+        + '<div style="flex:1; min-width:0;">'
+        + (n.icedogs ? '<span style="font-size:9px; font-weight:900; background:#C8102E; color:white; padding:1px 6px; border-radius:3px; margin-right:4px;">ICEDOGS</span>' : '')
+        + '<span style="font-weight:800; font-size:13px; line-height:1.3;">' + esc(n.title) + '</span>'
+        + '<div style="font-size:11px; color:var(--muted-text); margin-top:2px;">' + esc(when) + '</div></div></a>';
+    }).join('') + '<a href="https://chl.ca/ohl/tag/ohl-news/" target="_blank" rel="noopener" style="display:block; padding:10px 14px; font-size:12px; font-weight:800; color:#C8102E; text-decoration:none;">More OHL news &rarr;</a>';
+
+    const updated = info && info.fetched_at
+      ? '<div style="font-size:10px; color:var(--muted-text); text-align:center; margin:4px 0 12px;">Transactions, suspensions &amp; news from chl.ca &middot; updated ' + new Date(info.fetched_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + '</div>'
+      : '';
+
+    cont.innerHTML = infoCard('IceDogs Transactions', txHtml, 'infoTx')
+      + infoCard('OHL Suspensions', suspHtml, 'infoSusp')
+      + '<div id="draftPicksCont"></div>'
+      + infoCard('OHL News', newsHtml, 'infoNews')
+      + updated;
     loadDraftPicks(logoMap);
   }
 

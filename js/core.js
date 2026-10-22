@@ -287,7 +287,8 @@
     document.getElementById('appTabProfile').style.display = tab === 'profile' ? 'block' : 'none';
     document.getElementById('appTabAdmin').style.display = tab === 'admin' ? 'block' : 'none';
     document.getElementById('appTabEditor').style.display = tab === 'editor' ? 'block' : 'none';
-    ['Avail', 'MyGames', 'Crew', 'Season', 'Admin', 'Editor'].forEach(t => {
+    document.getElementById('appTabInfo').style.display = tab === 'info' ? 'block' : 'none';
+    ['Avail', 'MyGames', 'Crew', 'Season', 'Info', 'Admin', 'Editor'].forEach(t => {
       const btn = document.getElementById('navBtn' + t);
       if (!btn) return;
       const key = t.charAt(0).toLowerCase() + t.slice(1);
@@ -308,6 +309,7 @@
     if (tab === 'myGames') loadMyGames();
     if (tab === 'crew') loadCrew();
     if (tab === 'season') loadSeason();
+    if (tab === 'info') loadInfo();
     if (tab === 'editor') loadEditorMonths();
     if (tab === 'profile') loadProfile();
     if (tab === 'admin') loadAdmin();

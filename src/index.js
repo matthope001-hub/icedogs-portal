@@ -1,6 +1,7 @@
 // Cloudflare Worker for the IceDogs portal.
 //  - "/"               -> serves test.html
 //  - "/api/live-game"  -> today's IceDogs game with live score/period/clock
+//  - "/api/ohl-info"   -> OHL news, suspensions and IceDogs transactions (Info tab)
 //  - everything else   -> static assets
 
 export default {
@@ -16,6 +17,10 @@ export default {
     if (url.pathname === "/api/live-game") {
       if (url.searchParams.get("debug") === "1") return handleLiveGameDebug();
       return handleLiveGame(request);
+    }
+
+    if (url.pathname === "/api/ohl-info") {
+      return handleOhlInfo(url.searchParams.get("refresh") === "1");
     }
 
     if (url.pathname === "/" || url.pathname === "") {
@@ -297,4 +302,124 @@ async function handleLiveGameDebug() {
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), { headers });
   }
+}
+
+
+// ---- OHL info (Info tab) ----
+// Reads two public CHL pages and returns JSON:
+//  - Media Notes (chl.ca/ohl/media-notes/): the SUSPENSIONS table and the
+//    RECENT TRANSACTIONS table (Date, Team, gave, To, Team, gave).
+//  - OHL news RSS (chl.ca/ohl/feed/): latest stories with photo and summary.
+// Cached for 30 minutes in Cloudflare's cache so visitors don't hit chl.ca.
+// Each source is independent: if one fails the other still comes back.
+
+const MEDIA_NOTES_URL = "https://chl.ca/ohl/media-notes/";
+const OHL_RSS_URL = "https://chl.ca/ohl/feed/";
+const INFO_CACHE_SECONDS = 1800;
+
+async function handleOhlInfo(forceRefresh) {
+  const headers = { "Content-Type": "application/json", "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" };
+  const cacheKey = new Request("https://icedogofficials.ca/__cache/ohl-info-v1");
+  if (!forceRefresh) {
+    try {
+      const hit = await caches.default.match(cacheKey);
+      if (hit) return new Response(await hit.text(), { headers });
+    } catch (_e) { /* no cache available */ }
+  }
+
+  const [notes, news] = await Promise.all([
+    fetchMediaNotes().catch((e) => ({ error: e.message })),
+    fetchOhlNews().catch((e) => ({ error: e.message })),
+  ]);
+  const body = JSON.stringify({ fetched_at: new Date().toISOString(), ...notes, news: news.items || [], news_error: news.error });
+
+  try {
+    await caches.default.put(cacheKey, new Response(body, { headers: { "Cache-Control": "max-age=" + INFO_CACHE_SECONDS } }));
+  } catch (_e) { /* ignore */ }
+  return new Response(body, { headers });
+}
+
+function decodeEntities(s) {
+  return String(s || "")
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
+    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#039;|&apos;/g, "'");
+}
+
+// Cell HTML -> list of text lines (line breaks inside a cell separate items).
+function cellLines(html) {
+  return decodeEntities(String(html).replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n").replace(/<[^>]+>/g, ""))
+    .split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+}
+
+// First <table> after a heading -> rows of cells (each cell = list of lines).
+function tableAfter(html, heading) {
+  const at = html.indexOf(heading);
+  if (at < 0) return [];
+  const start = html.indexOf("<table", at);
+  const end = html.indexOf("</table>", start);
+  if (start < 0 || end < 0) return [];
+  const rows = [];
+  for (const tr of html.slice(start, end).split(/<tr[^>]*>/i).slice(1)) {
+    const cells = [];
+    const re = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
+    let m;
+    while ((m = re.exec(tr))) cells.push(cellLines(m[1]));
+    if (cells.some((c) => c.length)) rows.push(cells);
+  }
+  return rows;
+}
+
+const isIceDogs = (t) => /^(NIAG?|NIAGARA)$/i.test(String(t || "").trim());
+
+async function fetchMediaNotes() {
+  const res = await fetch(MEDIA_NOTES_URL, { headers: { "User-Agent": "Mozilla/5.0 IceDogsOfficialsPortal" } });
+  if (!res.ok) throw new Error("Media notes HTTP " + res.status);
+  const html = await res.text();
+
+  const suspensions = tableAfter(html, "SUSPENSIONS")
+    .filter((r) => (r[0] || [])[0] && !/^date$/i.test(r[0][0]))
+    .map((r) => ({
+      date: (r[0] || []).join(" "), player: (r[1] || []).join(" "), team: (r[2] || []).join(" "),
+      discipline: (r[3] || []).join(" "), eligible: (r[4] || []).join(" "),
+    }))
+    .map((s) => ({ ...s, icedogs: isIceDogs(s.team) }));
+
+  const transactions = tableAfter(html, "RECENT TRANSACTIONS")
+    .filter((r) => (r[0] || [])[0] && !/^date$/i.test(r[0][0]) && r.length >= 6)
+    .map((r) => ({ date: (r[0] || []).join(" "), teamA: (r[1] || []).join(" "), gaveA: r[2] || [], teamB: (r[4] || []).join(" "), gaveB: r[5] || [] }));
+
+  // IceDogs view of each transaction they were part of.
+  const icedogsTransactions = transactions
+    .filter((t) => isIceDogs(t.teamA) || isIceDogs(t.teamB))
+    .map((t) => {
+      const weAreA = isIceDogs(t.teamA);
+      return { date: t.date, partner: weAreA ? t.teamB : t.teamA, gave: weAreA ? t.gaveA : t.gaveB, got: weAreA ? t.gaveB : t.gaveA };
+    });
+
+  return { suspensions, icedogs_transactions: icedogsTransactions, transactions_total: transactions.length };
+}
+
+async function fetchOhlNews() {
+  const res = await fetch(OHL_RSS_URL, { headers: { "User-Agent": "Mozilla/5.0 IceDogsOfficialsPortal" } });
+  if (!res.ok) throw new Error("OHL news HTTP " + res.status);
+  const xml = await res.text();
+  const items = [];
+  const re = /<item>([\s\S]*?)<\/item>/g;
+  let m;
+  while ((m = re.exec(xml)) && items.length < 12) {
+    const block = m[1];
+    const tag = (name) => { const t = block.match(new RegExp("<" + name + "[^>]*>([\\s\\S]*?)</" + name + ">")); return t ? decodeEntities(t[1]).trim() : ""; };
+    const img = block.match(/<enclosure[^>]*url="([^"]+)"/);
+    const title = tag("title");
+    const description = tag("description").replace(/<[^>]+>/g, "").trim();
+    items.push({
+      title, link: tag("link"), date: tag("pubDate"), summary: description.slice(0, 220),
+      image: img ? img[1] : "",
+      icedogs: /icedogs|niagara/i.test(title + " " + description),
+    });
+  }
+  return { items };
 }
