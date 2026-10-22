@@ -274,6 +274,10 @@
 
     const { data: sched } = await sb.from('schedule').select('*').order('date');
     const { data: syncSetting } = await sb.from('app_settings').select('value').eq('key', 'last_ohl_sync').maybeSingle();
+    // Division / conference / overall rank, saved nightly by sync-standings.
+    const { data: standingsSetting } = await sb.from('app_settings').select('value').eq('key', 'ohl_standings').maybeSingle();
+    let standings = null;
+    try { standings = standingsSetting && standingsSetting.value ? JSON.parse(standingsSetting.value) : null; } catch (e) { standings = null; }
     const lastSyncLabel = syncSetting && syncSetting.value
       ? new Date(syncSetting.value).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
       : null;
@@ -316,6 +320,7 @@
       + '<div style="font-size:28px; font-weight:900;">' + recordStr + '</div>'
       + (totalPlayed > 0 ? '<div style="font-size:10px; font-weight:800; color:var(--muted-text); letter-spacing:0.5px;">W - L - OTL - SOL</div>' : '')
       + (totalPlayed > 0 ? '<div style="font-size:11px; color:var(--muted-text); margin-top:3px;">' + totalPlayed + ' game' + (totalPlayed !== 1 ? 's' : '') + ' played &middot; ' + (wins * 2 + otLosses + soLosses) + ' pts</div>' : '')
+      + standingsHtml(standings)
       + (lastSyncLabel ? '<div style="font-size:10px; color:var(--muted-text); margin-top:6px; border-top:1px solid var(--ios-sep); padding-top:6px;">Last synced ' + lastSyncLabel + '</div>' : '')
       + '</div>';
 
@@ -358,6 +363,25 @@
     html += '<div id="draftPicksCont"></div>';
     cont.innerHTML = html;
     loadDraftPicks(logoMap);
+  }
+
+
+  // Three rank tiles for the record card: division, conference, overall.
+  function standingsHtml(st) {
+    if (!st || !st.division || !st.division.rank) return '';
+    const tile = (rank, label, of) =>
+      '<div style="flex:1; min-width:0;">'
+      + '<div style="font-size:20px; font-weight:900; color:var(--icedogs-red, #C8102E);">' + (rank ? ordinal(rank) : '&mdash;') + '</div>'
+      + '<div style="font-size:10px; font-weight:800; color:var(--muted-text); text-transform:uppercase; line-height:1.3;">' + esc(label) + '</div>'
+      + (of ? '<div style="font-size:10px; color:var(--muted-text);">of ' + of + '</div>' : '')
+      + '</div>';
+    const divLabel = (st.division.name || 'Division').replace(/ Division$/, '');
+    const confLabel = (st.conference && st.conference.name || 'Conference').replace(/ Conference$/, '');
+    return '<div style="display:flex; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid var(--ios-sep);">'
+      + tile(st.division.rank, divLabel + ' Div', st.division.of)
+      + tile(st.conference && st.conference.rank, confLabel + ' Conf', st.conference && st.conference.of)
+      + tile(st.overall && st.overall.rank, 'OHL Overall', st.overall && st.overall.of)
+      + '</div>';
   }
 
 
