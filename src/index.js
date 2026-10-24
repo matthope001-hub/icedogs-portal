@@ -139,21 +139,35 @@ function clockSeconds(raw) {
 // ---- Intermission timing ----
 // HockeyTech has no intermission flag or clock: at the end of a period it just
 // shows game_clock "00:00:00" while the game is still in progress. The first time
-// the Worker sees that for a given period, it records the time, so everyone gets
-// the same countdown (not a fresh 18:00 for whoever loads the page mid-break).
-// Stored in Cloudflare's cache (shared by visitors) plus memory as a backup.
+// that's seen for a period, the start time is saved in Supabase
+// (live_intermissions, via record_intermission) so it's one fixed 18-minute
+// countdown for everyone that a refresh can't reset. A Supabase cron job pings
+// this endpoint every 15s on game days, so it starts even if nobody is watching.
+// Cloudflare's cache is only a fallback if Supabase can't be reached.
 const INTERMISSION_MS = 18 * 60 * 1000;
+const SB_URL = "https://fcehtovermlilpvwcksl.supabase.co";
+const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjZWh0b3Zlcm1saWxwdndja3NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4NTQzMDQsImV4cCI6MjEwMTQzMDMwNH0.Gllg9p2j3Bxrv1bpyNFBQMQtYQfWXDcxF9H7njyBksU";
 const intermissionMem = {};
 
 async function intermissionStart(gameId, period) {
   const key = gameId + "-" + period;
   if (intermissionMem[key]) return intermissionMem[key];
-  const cacheKey = new Request("https://icedogofficials.ca/__intermission/" + key);
   let start = null;
   try {
-    const hit = await caches.default.match(cacheKey);
-    if (hit) start = Number(await hit.text());
-  } catch (_e) { /* cache unavailable — fall back to memory */ }
+    const res = await fetch(SB_URL + "/rest/v1/rpc/record_intermission", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: SB_ANON, Authorization: "Bearer " + SB_ANON },
+      body: JSON.stringify({ p_game_id: String(gameId), p_period: period }),
+    });
+    if (res.ok) start = Date.parse(await res.json());
+  } catch (_e) { /* fall back to cache */ }
+  const cacheKey = new Request("https://icedogofficials.ca/__intermission/" + key);
+  if (!start || isNaN(start)) {
+    try {
+      const hit = await caches.default.match(cacheKey);
+      if (hit) start = Number(await hit.text());
+    } catch (_e) { /* cache unavailable */ }
+  }
   if (!start || isNaN(start)) {
     start = Date.now();
     try {
