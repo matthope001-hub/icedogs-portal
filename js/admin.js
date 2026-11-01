@@ -539,7 +539,7 @@
       const res = await callAdminAction('notify_availability_open', { month });
       if (res.success) hideSaving('Sent to ' + res.count + ' officials!');
       else hideSavingError(res.msg || 'Failed to send');
-    });
+    }, 'Send');
   }
 
 
@@ -1523,7 +1523,7 @@
     };
 
     if (email) {
-      showConfirm('Email all officials?', 'This posts the broadcast in the portal and emails it to every official with an email address on file.', doSend);
+      showConfirm('Email all officials?', 'This posts the broadcast in the portal and emails it to every official with an email address on file.', doSend, 'Send');
     } else {
       doSend();
     }
