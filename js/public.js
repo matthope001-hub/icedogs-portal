@@ -273,7 +273,35 @@
       + team(g.homeId, g.homeName, g.homeCode, g.homeScore, niagaraHome)
       + '</div>'
       + (g.venue ? '<div style="font-size:11px; color:var(--muted-text); margin-top:8px;">' + esc(g.venue) + '</div>' : '')
-      + '</div>';
+      + '</div>'
+      + goalsListHtml(g);
+  }
+
+  // Goal list under the score: every goal, IceDogs goals highlighted in red.
+  function goalsListHtml(g) {
+    const goals = g.goals || [];
+    if (!goals.length) return '';
+    const perName = function(p) { return ({ 1: '1st', 2: '2nd', 3: '3rd', 4: 'OT', 5: 'SO' })[p] || (p > 5 ? (p - 3) + 'OT' : ''); };
+    let html = '<div style="margin:12px -8px -8px; border-top:1px solid var(--ios-sep); text-align:left;">'
+      + '<div style="font-size:10px; font-weight:900; color:var(--muted-text); text-transform:uppercase; letter-spacing:0.5px; padding:10px 16px 4px;">Goals</div>';
+    let lastPer = null;
+    goals.forEach(function(x) {
+      if (x.period !== lastPer) {
+        lastPer = x.period;
+        html += '<div style="font-size:10px; font-weight:900; color:var(--muted-text); opacity:0.7; padding:6px 16px 2px;">' + esc(perName(x.period)) + '</div>';
+      }
+      const us = x.teamId === '20';
+      const tags = (x.tags || []).map(function(t) { return '<span style="font-size:9px; font-weight:900; background:#111; color:#fff; border-radius:3px; padding:1px 4px; margin-left:4px;">' + esc(t) + '</span>'; }).join('');
+      const sc = x.score ? x.score.away + '-' + x.score.home : ''; // same order as the card: away left, home right
+      html += '<div style="display:flex; align-items:center; gap:10px; padding:7px 16px; border-top:1px solid var(--ios-sep);' + (us ? ' background:rgba(200,16,46,0.06);' : '') + '">'
+        + '<span style="font-size:11px; color:var(--muted-text); width:34px; flex-shrink:0;">' + esc(x.time) + '</span>'
+        + '<span style="font-size:10px; font-weight:900; width:34px; text-align:center; border-radius:4px; padding:2px 0; flex-shrink:0;' + (us ? ' background:var(--icedogs-red, #C8102E); color:#fff;' : ' background:var(--ios-sep); color:var(--muted-text);') + '">' + esc(us ? 'NIA' : (x.teamCode || '')) + '</span>'
+        + '<div style="flex:1; min-width:0; font-size:13px;"><b style="font-weight:800;' + (us ? ' color:var(--icedogs-red, #C8102E);' : '') + '">' + esc(x.scorer || 'Goal') + '</b>'
+        + (x.scorerGoals ? ' <span style="color:var(--muted-text); font-size:11px;">(' + esc(x.scorerGoals) + ')</span>' : '') + tags
+        + '<div style="font-size:11px; color:var(--muted-text);">' + esc((x.assists && x.assists.length) ? x.assists.join(', ') : 'Unassisted') + '</div></div>'
+        + '<span style="font-size:11px; font-weight:800; color:var(--muted-text);">' + esc(sc) + '</span></div>';
+    });
+    return html + '</div>';
   }
 
 

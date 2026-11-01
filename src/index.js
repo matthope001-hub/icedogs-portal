@@ -199,6 +199,52 @@ async function fetchClock(gameId) {
   }
 }
 
+// ---- Goal list ----
+// From the HockeyTech game summary (bigger feed, so it's only re-fetched when
+// the score changes or every 30s to pick up assist corrections).
+let goalsCache = null; // { gameId, at, total, goals }
+
+async function fetchGoals(gameId, total) {
+  if (goalsCache && goalsCache.gameId === gameId && goalsCache.total === total && Date.now() - goalsCache.at < 30000) {
+    return goalsCache.goals;
+  }
+  try {
+    const url = `${FEED}?feed=gc&tab=gamesummary&key=${API_KEY}&client_code=${CLIENT_CODE}&lang_code=en&fmt=json&game_id=${gameId}`;
+    const json = await fetchJson(url);
+    const raw = (json && json.GC && json.GC.Gamesummary && json.GC.Gamesummary.goals) || [];
+    const name = (p) => (p && p.last_name ? (str(p.first_name) + " " + str(p.last_name)).trim() : "");
+    let home = 0, away = 0;
+    const goals = raw
+      .map((g) => ({ g, per: num(g.period_id), sec: num(g.s) }))
+      .sort((a, b) => a.per - b.per || a.sec - b.sec)
+      .map(({ g, per }) => {
+        const isHomeGoal = str(g.home) === "1";
+        if (isHomeGoal) home++; else away++;
+        const tags = [];
+        if (str(g.power_play) === "1") tags.push("PP");
+        if (str(g.short_handed) === "1") tags.push("SH");
+        if (str(g.empty_net) === "1") tags.push("EN");
+        if (str(g.penalty_shot) === "1") tags.push("PS");
+        return {
+          period: per,
+          time: str(g.time),
+          teamId: str(g.team_id),
+          teamCode: str((g.goal_scorer || {}).team_code),
+          scorer: name(g.goal_scorer),
+          scorerGoals: str(g.scorer_goal_num),
+          assists: [name(g.assist1_player), name(g.assist2_player)].filter(Boolean),
+          tags,
+          home: isHomeGoal,
+          score: { home, away },
+        };
+      });
+    goalsCache = { gameId, at: Date.now(), total, goals };
+    return goals;
+  } catch (_e) {
+    return goalsCache && goalsCache.gameId === gameId ? goalsCache.goals : [];
+  }
+}
+
 async function buildLiveBody() {
   const schedUrl = `${FEED}?feed=modulekit&view=schedule&key=${API_KEY}&fmt=json&client_code=${CLIENT_CODE}&lang=en&season_id=${SEASON_ID}&team_id=${TEAM_ID}&league_id=${LEAGUE_ID}`;
   const json = await fetchJson(schedUrl);
@@ -275,9 +321,13 @@ async function buildLiveBody() {
     }
   }
 
+  const goals = state !== "pre" && gameId && (homeScore + awayScore) > 0
+    ? await fetchGoals(gameId, homeScore + awayScore) : [];
+
   return JSON.stringify({
     game: {
       state,
+      goals,
       gameId,
       isHome,
       homeId: str(g.home_team),
