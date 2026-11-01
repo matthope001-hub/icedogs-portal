@@ -624,7 +624,7 @@
     const todayStr = new Date().toISOString().slice(0, 10);
     const { data: games } = await sb
       .from('games')
-      .select('id, game_number, date, time, opponent_name, promo')
+      .select('id, game_number, date, time, opponent_name, promo, schedule_locked')
       .gte('date', todayStr)
       .order('date')
       .limit(10);
@@ -692,11 +692,17 @@
         ? '<div style="font-size:10px; color:var(--icedogs-red); font-weight:800; margin-bottom:6px;">' + getPromoIcon(g.promo) + ' ' + esc(g.promo) + '</div>'
         : '';
 
+      // Same status pill as the public landing page
+      const statusHtml = '<div style="margin-bottom:6px;">' + (g.schedule_locked
+        ? '<span style="background:rgba(21,128,61,0.15); border:1px solid rgba(21,128,61,0.35); color:#22c55e; font-size:10px; font-weight:900; padding:3px 8px; border-radius:20px;">✓ Schedule Set</span>'
+        : '<span style="background:rgba(220,38,38,0.12); border:1px solid rgba(220,38,38,0.3); color:#dc2626; font-size:10px; font-weight:900; padding:3px 8px; border-radius:20px;">⏳ Scheduling In Progress</span>') + '</div>';
+
       return '<div style="border-bottom:1px solid var(--ios-sep); padding:12px 14px; display:flex; gap:10px;">'
         + logoHtml
         + '<div style="flex:1; min-width:0;">'
         + '<div style="font-weight:800; font-size:13px;">vs ' + esc(g.opponent_name) + '</div>'
         + '<div style="font-size:11px; color:var(--muted-text); margin-bottom:6px;">' + dateLabel + ' @ ' + (g.time || 'TBD') + '</div>'
+        + statusHtml
         + promoHtml
         + crewRows + availChips
         + '</div></div>';
