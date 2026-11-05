@@ -583,13 +583,33 @@
         + '</div>'
         + sentHtml;
 
+      // Collapsed by default. A month that is open, or has times set and hasn't
+      // closed yet, starts expanded. A tap on the row overrides either way.
+      const isLive = isActive || ((m.opens_at || m.closes_at) && !m.close_email_sent_at);
+      const expanded = (m.month in _winExpanded) ? _winExpanded[m.month] : !!isLive;
+
       return '<div style="padding:10px 0; border-bottom:1px solid var(--ios-sep);">'
-        + '<div style="display:flex; align-items:center; justify-content:space-between;">'
-        + '<div style="display:flex; align-items:center;"><span style="font-size:13px; font-weight:700;">' + esc(label) + '</span>' + windowPill(m) + '</div>'
-        + '<div style="display:flex; align-items:center;">' + notifyBtn + '<label class="switch"><input type="checkbox" ' + (isActive ? 'checked' : '') + ' onchange="toggleMonth(\'' + safeMonth + '\', this.checked)"><span class="slider"></span></label></div></div>'
-        + schedule
+        + '<div onclick="toggleWindowRow(\'' + safeMonth + '\')" style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;">'
+        + '<div style="display:flex; align-items:center; min-width:0;"><span id="winChev_' + m.month + '" style="font-size:11px; color:var(--muted-text); width:16px;">' + (expanded ? '▲' : '▼') + '</span><span style="font-size:13px; font-weight:700;">' + esc(label) + '</span>' + windowPill(m) + '</div>'
+        + '<div onclick="event.stopPropagation()" style="display:flex; align-items:center;">' + notifyBtn + '<label class="switch"><input type="checkbox" ' + (isActive ? 'checked' : '') + ' onchange="toggleMonth(\'' + safeMonth + '\', this.checked)"><span class="slider"></span></label></div></div>'
+        + '<div id="winBody_' + m.month + '" style="display:' + (expanded ? 'block' : 'none') + ';">' + schedule + '</div>'
         + '</div>';
     }).join('');
+  }
+
+
+  // Remembers rows the admin opened or closed by hand, so a re-render after
+  // saving doesn't snap them back.
+  const _winExpanded = {};
+
+  function toggleWindowRow(month) {
+    const body = document.getElementById('winBody_' + month);
+    const chev = document.getElementById('winChev_' + month);
+    if (!body) return;
+    const open = body.style.display === 'none';
+    body.style.display = open ? 'block' : 'none';
+    if (chev) chev.textContent = open ? '▲' : '▼';
+    _winExpanded[month] = open;
   }
 
 
