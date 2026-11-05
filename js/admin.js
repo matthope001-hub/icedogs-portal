@@ -7,6 +7,8 @@
 
   const EXPORT_BACKUP_URL = "https://fcehtovermlilpvwcksl.supabase.co/functions/v1/export-backup";
 
+  const WINDOW_SCHEDULER_URL = "https://fcehtovermlilpvwcksl.supabase.co/functions/v1/window-scheduler";
+
 
   async function exportBackupNow() {
     const status = document.getElementById('exportBackupStatus');
@@ -512,8 +514,40 @@
   }
 
 
+  // ---- Availability Windows (Avail Win tab) ----
+  // Each month has a manual toggle (status) plus optional scheduled open/close
+  // times. The window-scheduler function checks every 15 minutes: at the open
+  // time it sets the window Active and emails non-submitters; 48hrs before close
+  // it reminds non-submitters; at the close time it sets the window Hidden and
+  // emails the not-submitted list to the summary recipients.
+
+  // ISO timestamp -> value for <input type="datetime-local"> in local time.
+  function isoToLocalInput(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const pad = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function fmtWindowTime(iso) {
+    return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }
+
+  function windowPill(m) {
+    const now = Date.now();
+    let text, bg, color;
+    if (m.status === 'Active') { text = 'Open'; bg = '#dcfce7'; color = '#166534'; }
+    else if (m.opens_at && new Date(m.opens_at).getTime() > now) { text = 'Scheduled'; bg = '#eef2ff'; color = '#3730a3'; }
+    else if (m.close_email_sent_at) { text = 'Closed'; bg = 'var(--ios-bg)'; color = 'var(--muted-text)'; }
+    else return '';
+    return '<span style="font-size:10px; font-weight:900; padding:3px 8px; border-radius:20px; background:' + bg + '; color:' + color + '; margin-left:8px; white-space:nowrap;">' + text + '</span>';
+  }
+
+
   async function loadMonthToggleList() {
-    const { data: raw } = await sb.from('month_windows').select('month, label, status').order('month');
+    const { data: raw } = await sb.from('month_windows')
+      .select('month, label, status, opens_at, closes_at, open_email_sent_at, reminder_sent_at, close_email_sent_at')
+      .order('month');
     const months = (raw || []).slice().sort((a, b) => {
       if (a.month === 'preseason') return -1;
       if (b.month === 'preseason') return 1;
@@ -523,13 +557,78 @@
     monthCont.innerHTML = (months || []).map(m => {
       const label = m.label || (/^\d{4}-\d{2}$/.test(m.month) ? new Date(m.month + "T12:00:00").toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : m.month);
       const isActive = m.status === 'Active';
+      const safeMonth = m.month.replace(/'/g, "\\'");
       const notifyBtn = isActive
-        ? '<button onclick="confirmNotifyAvailability(\'' + m.month + '\', \'' + esc(label) + '\')" style="background:#eef2ff; border:none; border-radius:6px; padding:5px 10px; font-size:11px; color:#3730a3; cursor:pointer; margin-right:8px;">Notify</button>'
+        ? '<button onclick="confirmNotifyAvailability(\'' + safeMonth + '\', \'' + esc(label) + '\')" style="background:#eef2ff; border:none; border-radius:6px; padding:5px 10px; font-size:11px; color:#3730a3; cursor:pointer; margin-right:8px;">Notify</button>'
         : '';
-      return '<div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--ios-sep);">'
-        + '<span style="font-size:13px; font-weight:700;">' + esc(label) + '</span>'
-        + '<div style="display:flex; align-items:center;">' + notifyBtn + '<label class="switch"><input type="checkbox" ' + (isActive ? 'checked' : '') + ' onchange="toggleMonth(\'' + m.month + '\', this.checked)"><span class="slider"></span></label></div></div>';
+
+      const sent = [];
+      if (m.open_email_sent_at) sent.push('Open email ' + fmtWindowTime(m.open_email_sent_at));
+      if (m.reminder_sent_at) sent.push('Reminder ' + fmtWindowTime(m.reminder_sent_at));
+      if (m.close_email_sent_at) sent.push('Summary ' + fmtWindowTime(m.close_email_sent_at));
+      const sentHtml = sent.length
+        ? '<div style="font-size:10px; color:var(--muted-text); margin-top:6px;">✉️ ' + esc(sent.join(' · ')) + '</div>'
+        : '';
+
+      const inputStyle = 'height:38px; margin:0; font-size:12px; width:100%; box-sizing:border-box;';
+      const schedule = '<div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px; margin-top:8px;">'
+        + '<div><div style="font-size:10px; font-weight:800; color:var(--muted-text); text-transform:uppercase; margin-bottom:3px;">Opens</div>'
+        + '<input type="datetime-local" id="winOpen_' + m.month + '" value="' + isoToLocalInput(m.opens_at) + '" style="' + inputStyle + '"></div>'
+        + '<div><div style="font-size:10px; font-weight:800; color:var(--muted-text); text-transform:uppercase; margin-bottom:3px;">Closes</div>'
+        + '<input type="datetime-local" id="winClose_' + m.month + '" value="' + isoToLocalInput(m.closes_at) + '" style="' + inputStyle + '"></div>'
+        + '</div>'
+        + '<div style="display:flex; gap:6px; margin-top:8px;">'
+        + '<button onclick="saveWindowTimes(\'' + safeMonth + '\')" style="flex:1; background:var(--icedogs-red); border:none; border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:white; cursor:pointer;">Save times</button>'
+        + ((m.opens_at || m.closes_at) ? '<button onclick="confirmClearWindowTimes(\'' + safeMonth + '\', \'' + esc(label) + '\')" style="flex:1; background:var(--ios-card); border:1px solid var(--ios-sep); border-radius:6px; padding:8px 6px; font-size:11px; font-weight:700; color:var(--ios-text); cursor:pointer;">Clear times</button>' : '')
+        + '</div>'
+        + sentHtml;
+
+      return '<div style="padding:10px 0; border-bottom:1px solid var(--ios-sep);">'
+        + '<div style="display:flex; align-items:center; justify-content:space-between;">'
+        + '<div style="display:flex; align-items:center;"><span style="font-size:13px; font-weight:700;">' + esc(label) + '</span>' + windowPill(m) + '</div>'
+        + '<div style="display:flex; align-items:center;">' + notifyBtn + '<label class="switch"><input type="checkbox" ' + (isActive ? 'checked' : '') + ' onchange="toggleMonth(\'' + safeMonth + '\', this.checked)"><span class="slider"></span></label></div></div>'
+        + schedule
+        + '</div>';
     }).join('');
+  }
+
+
+  async function callWindowScheduler(action, payload) {
+    try {
+      const res = await fetch(WINDOW_SCHEDULER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+        body: JSON.stringify({ token: sessionToken, action, payload })
+      });
+      return await res.json();
+    } catch (e) {
+      return { success: false, msg: 'Network error — try again' };
+    }
+  }
+
+
+  async function saveWindowTimes(month) {
+    const openVal = document.getElementById('winOpen_' + month).value;
+    const closeVal = document.getElementById('winClose_' + month).value;
+    if (!openVal && !closeVal) { showToast('Set an open or close time first'); return; }
+    const opensAt = openVal ? new Date(openVal).toISOString() : null;
+    const closesAt = closeVal ? new Date(closeVal).toISOString() : null;
+    if (opensAt && closesAt && new Date(closesAt) <= new Date(opensAt)) { showToast('Close time must be after open time'); return; }
+
+    showSaving('Saving times...');
+    const res = await callWindowScheduler('save_window_times', { month, opensAt, closesAt });
+    if (res.success) { hideSaving('Saved!'); loadMonthToggleList(); }
+    else hideSavingError(res.msg || 'Failed to save');
+  }
+
+
+  function confirmClearWindowTimes(month, label) {
+    showConfirm('Clear Times?', 'Removes the scheduled open and close times for ' + label + '. The window stays as it is now and won\'t open or close on its own.', async () => {
+      showSaving('Clearing...');
+      const res = await callWindowScheduler('save_window_times', { month, opensAt: null, closesAt: null });
+      if (res.success) { hideSaving('Cleared!'); loadMonthToggleList(); }
+      else hideSavingError(res.msg || 'Failed to clear');
+    }, 'Clear');
   }
 
 
